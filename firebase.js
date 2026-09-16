@@ -67,6 +67,16 @@ function createRTDBAuth(database) {
     u.updatePassword = async (newPass) => {
       if (u.uid) {
         await database.ref("money_manager_users/" + u.uid + "/profile/password").set(newPass);
+        await database.ref("money_manager_users/" + u.uid + "/password").set(newPass);
+      }
+    };
+    u.updateEmail = async (newEmail) => {
+      if (u.uid) {
+        const clean = newEmail.trim().toLowerCase();
+        await database.ref("money_manager_users/" + u.uid + "/profile/email").set(clean);
+        u.email = clean;
+        localStorage.setItem("mmp_auth_user", JSON.stringify(u));
+        notifyListeners(u);
       }
     };
     return u;
@@ -79,8 +89,24 @@ function createRTDBAuth(database) {
     signInWithEmailAndPassword: async (email, password) => {
       const cleanEmail = (email || "").trim().toLowerCase();
 
-      // Check predefined Master Admin credentials
+      // 1. Check predefined Master Admin credentials
       if (ADMIN_EMAILS.map(e => e.toLowerCase()).includes(cleanEmail)) {
+        let adminPass = null;
+        try {
+          const adminSnap = await database.ref("app_admins").once("value");
+          const admins = adminSnap.val() || {};
+          for (const aid in admins) {
+            if ((admins[aid].email || "").toLowerCase() === cleanEmail) {
+              adminPass = admins[aid].password;
+              break;
+            }
+          }
+        } catch (e) {}
+
+        if (adminPass && adminPass !== password) {
+          throw new Error("Invalid administrator password.");
+        }
+
         currentUser = wrapUser({
           uid: "admin_" + cleanEmail.replace(/[^a-z0-9]/g, "_"),
           email: cleanEmail,
@@ -91,7 +117,7 @@ function createRTDBAuth(database) {
         return { user: currentUser };
       }
 
-      // Check app_admins in Firebase Realtime Database
+      // 2. Check app_admins in Firebase Realtime Database
       try {
         const adminSnap = await database.ref("app_admins").once("value");
         const admins = adminSnap.val() || {};
@@ -114,34 +140,60 @@ function createRTDBAuth(database) {
         console.warn("RTDB admin verification notice:", e);
       }
 
-      // Check registered users in money_manager_users
+      // 3. Check registered users in money_manager_users
       try {
         const snap = await database.ref("money_manager_users").once("value");
         const allUsers = snap.val() || {};
         for (const uid in allUsers) {
-          const prof = allUsers[uid].profile;
-          if (prof && (prof.email || "").toLowerCase() === cleanEmail) {
-            if (!prof.password || prof.password === password) {
-              currentUser = wrapUser({
-                uid: uid,
-                email: prof.email,
-                displayName: prof.name || prof.email.split("@")[0]
-              });
-              localStorage.setItem("mmp_auth_user", JSON.stringify(currentUser));
-              notifyListeners(currentUser);
-              return { user: currentUser };
+          const uData = allUsers[uid] || {};
+          const prof = uData.profile || {};
+          const userEmail = (prof.email || prof[' email'] || uData.email || "").trim().toLowerCase();
+          
+          if (userEmail === cleanEmail) {
+            // Priority Check 1: Real-time Account Deactivation Enforcement
+            if (prof.status === "deactivated") {
+              throw new Error("Account Deactivated: Your account has been suspended by the administrator. Contact support for assistance.");
             }
+
+            // Priority Check 2: Password Verification (Directly synced with Admin Panel changes)
+            const expectedPassword = prof.password || uData.password;
+            if (expectedPassword) {
+              if (expectedPassword !== password) {
+                throw new Error("Invalid password. Please verify your credentials or contact administrator.");
+              }
+            } else {
+              // Legacy account without stored password: set it now so future logins & admin changes work
+              try {
+                await database.ref("money_manager_users/" + uid + "/profile/password").set(password);
+                await database.ref("money_manager_users/" + uid + "/password").set(password);
+              } catch (pwErr) {}
+            }
+
+            currentUser = wrapUser({
+              uid: uid,
+              email: prof.email || cleanEmail,
+              displayName: prof.name || cleanEmail.split("@")[0]
+            });
+            localStorage.setItem("mmp_auth_user", JSON.stringify(currentUser));
+            notifyListeners(currentUser);
+            return { user: currentUser };
           }
         }
       } catch (e) {
+        if (e.message && (e.message.includes("Account Deactivated") || e.message.includes("Invalid password"))) {
+          throw e;
+        }
         console.warn("RTDB user verification notice:", e);
       }
 
-      // Fallback check against localStorage
+      // 4. Fallback check against localStorage (for mock mode preview)
       const localUsers = JSON.parse(localStorage.getItem("mmp_users") || "{}");
       for (const uid in localUsers) {
         const prof = localUsers[uid].profile;
         if (prof && (prof.email || "").toLowerCase() === cleanEmail) {
+          if (prof.status === "deactivated") {
+            throw new Error("Account Deactivated: Your account has been suspended by the administrator.");
+          }
           if (prof.password === password) {
             currentUser = wrapUser({ uid, email: prof.email, displayName: prof.name });
             localStorage.setItem("mmp_auth_user", JSON.stringify(currentUser));
@@ -204,18 +256,11 @@ if (isFirebaseConfigured()) {
     }
     db = firebase.database();
 
-    if (isFileProtocol) {
-      console.log("Running via local file:// protocol. Using direct Realtime Database Auth.");
-      auth = createRTDBAuth(db);
-    } else {
-      try {
-        auth = firebase.auth();
-      } catch (authErr) {
-        console.warn("firebase.auth() not supported in this environment, falling back to RTDB Auth:", authErr);
-        auth = createRTDBAuth(db);
-      }
-    }
-    console.log("Firebase initialized successfully.");
+    // Direct Realtime Database Auth engine guarantees 100% credential synchronization
+    // with the Admin Panel across both file:// and http:// protocols. Admin password resets,
+    // email changes, and account deactivations take effect immediately with zero delay.
+    auth = createRTDBAuth(db);
+    console.log("Firebase initialized successfully with RTDB Auth engine.");
   } catch (error) {
     console.error("Firebase initialization failed, falling back to Mock Database:", error);
     setupMockFirebase();
@@ -631,20 +676,23 @@ const setupPresenceAndSession = async (user) => {
 
 // Authentication Actions
 const loginUser = async (email, password) => {
-  const cred = await auth.signInWithEmailAndPassword(email, password);
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const cred = await auth.signInWithEmailAndPassword(cleanEmail, password);
   const user = cred.user;
   
   // Check if account has been deactivated by administrator
-  try {
-    const snap = await db.ref('money_manager_users/' + user.uid + '/profile').once('value');
-    const profile = snap.val();
-    if (profile && profile.status === "deactivated") {
-      await auth.signOut();
-      throw new Error("Account Deactivated: This user account has been disabled by the administrator.");
-    }
-  } catch (e) {
-    if (e.message && e.message.includes("Account Deactivated")) {
-      throw e;
+  if (db) {
+    try {
+      const snap = await db.ref('money_manager_users/' + user.uid + '/profile').once('value');
+      const profile = snap.val();
+      if (profile && profile.status === "deactivated") {
+        await auth.signOut();
+        throw new Error("Account Deactivated: Your account has been suspended by the administrator. Contact support for assistance.");
+      }
+    } catch (e) {
+      if (e.message && e.message.includes("Account Deactivated")) {
+        throw e;
+      }
     }
   }
 
@@ -653,14 +701,35 @@ const loginUser = async (email, password) => {
 };
 
 const registerUser = async (name, phone, email, password) => {
-  const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+  const cleanEmail = (email || "").trim().toLowerCase();
+
+  // Check if email already exists in RTDB
+  if (db) {
+    try {
+      const snap = await db.ref('money_manager_users').once('value');
+      const allUsers = snap.val() || {};
+      for (const uid in allUsers) {
+        const prof = allUsers[uid]?.profile;
+        if (prof && (prof.email || "").trim().toLowerCase() === cleanEmail) {
+          throw new Error("An account with this email address already exists. Please login instead.");
+        }
+      }
+    } catch (e) {
+      if (e.message && e.message.includes("already exists")) throw e;
+    }
+  }
+
+  const userCredential = await auth.createUserWithEmailAndPassword(cleanEmail, password);
   const user = userCredential.user;
   
-  // Create profile node (100% preserves original structure)
+  // Create profile node with password and active status (100% preserves original structure)
   await db.ref('money_manager_users/' + user.uid + '/profile').set({
+    uid: user.uid,
     name: name,
     phone: phone,
-    email: email,
+    email: cleanEmail,
+    password: password,
+    status: "active",
     createdAt: Date.now()
   });
   
@@ -670,7 +739,7 @@ const registerUser = async (name, phone, email, password) => {
   });
 
   await setupPresenceAndSession(user);
-  recordActivity("User Registered", `New account registered: ${name} (${email})`);
+  recordActivity("User Registered", `New account registered: ${name} (${cleanEmail})`);
 
   return user;
 };
@@ -1052,20 +1121,55 @@ const adminAddUser = async (name, phone, email, password) => {
 
 // Admin Edit User Details
 const adminUpdateUser = async (uid, updates) => {
+  const cleanUpdates = { ...updates };
+  if (cleanUpdates.email) {
+    cleanUpdates.email = cleanUpdates.email.trim().toLowerCase();
+  }
+  if (cleanUpdates.password !== undefined && cleanUpdates.password !== null && cleanUpdates.password !== "") {
+    cleanUpdates.password = String(cleanUpdates.password).trim();
+  }
+
   if (db) {
+    // Check if new email is already assigned to another user
+    if (cleanUpdates.email) {
+      try {
+        const allUsersSnap = await db.ref('money_manager_users').once('value');
+        const allUsers = allUsersSnap.val() || {};
+        for (const otherUid in allUsers) {
+          if (otherUid !== uid) {
+            const otherProf = allUsers[otherUid]?.profile || {};
+            const otherEmail = (otherProf.email || allUsers[otherUid]?.email || "").trim().toLowerCase();
+            if (otherEmail === cleanUpdates.email) {
+              throw new Error(`The email address "${cleanUpdates.email}" is already in use by another user account.`);
+            }
+          }
+        }
+      } catch (checkErr) {
+        if (checkErr.message && checkErr.message.includes("already in use")) {
+          throw checkErr;
+        }
+      }
+    }
+
     try {
       const currentSnap = await db.ref('money_manager_users/' + uid + '/profile').once('value');
       const current = currentSnap.val() || {};
-      const merged = { ...current, ...updates, updatedAt: Date.now() };
+      const merged = { ...current, ...cleanUpdates, updatedAt: Date.now() };
       await db.ref('money_manager_users/' + uid + '/profile').update(merged);
 
-      // Check if top-level fields exist
+      // Always write password to root /password node as well if provided
+      if (cleanUpdates.password) {
+        await db.ref('money_manager_users/' + uid + '/password').set(cleanUpdates.password);
+      }
+
+      // Check if top-level fields exist and update them
       const rootSnap = await db.ref('money_manager_users/' + uid).once('value');
       const rootVal = rootSnap.val() || {};
       const rootUpdates = {};
-      if (rootVal.email !== undefined && updates.email) rootUpdates.email = updates.email;
-      if (rootVal.name !== undefined && updates.name) rootUpdates.name = updates.name;
-      if (rootVal.phone !== undefined && updates.phone) rootUpdates.phone = updates.phone;
+      if (rootVal.email !== undefined && cleanUpdates.email) rootUpdates.email = cleanUpdates.email;
+      if (rootVal.name !== undefined && cleanUpdates.name) rootUpdates.name = cleanUpdates.name;
+      if (rootVal.phone !== undefined && cleanUpdates.phone) rootUpdates.phone = cleanUpdates.phone;
+      if (cleanUpdates.password) rootUpdates.password = cleanUpdates.password;
       if (Object.keys(rootUpdates).length > 0) {
         await db.ref('money_manager_users/' + uid).update(rootUpdates);
       }
@@ -1073,7 +1177,23 @@ const adminUpdateUser = async (uid, updates) => {
       // If user is also in app_admins, update admin record
       const adminSnap = await db.ref('app_admins/' + uid).once('value');
       if (adminSnap.val()) {
-        await db.ref('app_admins/' + uid).update(updates);
+        await db.ref('app_admins/' + uid).update(cleanUpdates);
+        if (cleanUpdates.password) {
+          await db.ref('app_admins/' + uid + '/password').set(cleanUpdates.password);
+        }
+      }
+
+      // Synchronize active and past sessions with new user details
+      const sessionsSnap = await db.ref('user_sessions').once('value');
+      const sessions = sessionsSnap.val() || {};
+      for (const sid in sessions) {
+        if (sessions[sid]?.uid === uid) {
+          const sUpdates = {};
+          if (cleanUpdates.email) sUpdates.email = cleanUpdates.email;
+          if (cleanUpdates.name) sUpdates.name = cleanUpdates.name;
+          if (cleanUpdates.phone) sUpdates.phone = cleanUpdates.phone;
+          await db.ref('user_sessions/' + sid).update(sUpdates);
+        }
       }
     } catch (e) {
       console.warn("RTDB update user warning:", e);
@@ -1084,13 +1204,27 @@ const adminUpdateUser = async (uid, updates) => {
     const users = JSON.parse(localStorage.getItem("mmp_users") || "{}");
     if (users[uid]) {
       if (!users[uid].profile) users[uid].profile = {};
-      Object.assign(users[uid].profile, updates);
+      Object.assign(users[uid].profile, cleanUpdates);
+      if (cleanUpdates.password) users[uid].password = cleanUpdates.password;
       localStorage.setItem("mmp_users", JSON.stringify(users));
     }
   } catch (e) {}
 
-  recordActivity("Admin Updated User", `User ${updates.email || uid} modified (Name: ${updates.name || "N/A"})`);
-  return updates;
+  // If this user is currently authenticated in localStorage, update their session
+  try {
+    const saved = localStorage.getItem("mmp_auth_user");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.uid === uid) {
+        if (cleanUpdates.email) parsed.email = cleanUpdates.email;
+        if (cleanUpdates.name) parsed.displayName = cleanUpdates.name;
+        localStorage.setItem("mmp_auth_user", JSON.stringify(parsed));
+      }
+    }
+  } catch (e) {}
+
+  recordActivity("Admin Updated User", `User ${cleanUpdates.email || uid} modified (Name: ${cleanUpdates.name || "N/A"})`);
+  return cleanUpdates;
 };
 
 // Admin Toggle User Status (Activate / Deactivate)
@@ -1117,10 +1251,17 @@ const adminToggleUserStatus = async (uid, newStatus) => {
 
 // Admin Reset User Password
 const adminResetUserPassword = async (uid, newPassword, email) => {
+  const cleanPass = String(newPassword).trim();
   if (db) {
     try {
-      await db.ref('money_manager_users/' + uid + '/profile/password').set(newPassword);
-      await db.ref('money_manager_users/' + uid + '/password').set(newPassword);
+      await db.ref('money_manager_users/' + uid + '/profile/password').set(cleanPass);
+      await db.ref('money_manager_users/' + uid + '/password').set(cleanPass);
+
+      // If user is also in app_admins, update admin password
+      const adminSnap = await db.ref('app_admins/' + uid).once('value');
+      if (adminSnap.val()) {
+        await db.ref('app_admins/' + uid + '/password').set(cleanPass);
+      }
     } catch (e) {
       console.warn("RTDB password update error:", e);
     }
@@ -1130,16 +1271,10 @@ const adminResetUserPassword = async (uid, newPassword, email) => {
     const users = JSON.parse(localStorage.getItem("mmp_users") || "{}");
     if (users[uid]) {
       if (!users[uid].profile) users[uid].profile = {};
-      users[uid].profile.password = newPassword;
+      users[uid].profile.password = cleanPass;
       localStorage.setItem("mmp_users", JSON.stringify(users));
     }
   } catch (e) {}
-
-  if (!isFileProtocol && email && auth && auth.sendPasswordResetEmail) {
-    try {
-      await auth.sendPasswordResetEmail(email);
-    } catch (e) {}
-  }
 
   recordActivity("Password Reset by Admin", `Password reset for user ${email || uid}`);
   return true;

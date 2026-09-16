@@ -38,6 +38,41 @@ document.addEventListener("DOMContentLoaded", () => {
     MMP_Firebase.listenToUserData((data) => {
       rawUserData = data || {};
       
+      // Real-time Account Deactivation Lockout Guard
+      const isDeactivated = rawUserData?.profile?.status === "deactivated";
+      const lockoutModal = document.getElementById("deactivated-lockout-modal");
+
+      if (isDeactivated) {
+        if (lockoutModal) {
+          lockoutModal.style.display = "flex";
+          lockoutModal.classList.add("show");
+        }
+        document.querySelectorAll("button:not(#deactivated-logout-btn), input, select, textarea, .theme-card").forEach(el => {
+          el.setAttribute("disabled", "true");
+          el.style.pointerEvents = "none";
+          el.style.opacity = "0.5";
+        });
+        const deactLogoutBtn = document.getElementById("deactivated-logout-btn");
+        if (deactLogoutBtn) {
+          deactLogoutBtn.onclick = async () => {
+            await MMP_Firebase.logoutUser();
+            window.location.replace("index.html");
+          };
+        }
+        lucide.createIcons();
+        return;
+      } else {
+        if (lockoutModal) {
+          lockoutModal.style.display = "none";
+          lockoutModal.classList.remove("show");
+        }
+        document.querySelectorAll("button:not(#deactivated-logout-btn), input, select, textarea, .theme-card").forEach(el => {
+          el.removeAttribute("disabled");
+          el.style.pointerEvents = "";
+          el.style.opacity = "";
+        });
+      }
+
       updateProfileUI();
       applyUserTheme();
       updateThemeCardsUI();

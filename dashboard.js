@@ -87,6 +87,56 @@ document.addEventListener("DOMContentLoaded", () => {
     MMP_Firebase.listenToUserData((data) => {
       rawUserData = data || {};
       
+      // Real-time Account Deactivation Lockout Guard
+      const isDeactivated = rawUserData?.profile?.status === "deactivated";
+      const lockoutModal = document.getElementById("deactivated-lockout-modal");
+
+      if (isDeactivated && !isInspecting) {
+        if (lockoutModal) {
+          lockoutModal.style.display = "flex";
+          lockoutModal.classList.add("show");
+        }
+        // Completely disable all interactive UI elements on the dashboard
+        document.querySelectorAll("button:not(#deactivated-logout-btn), input, select, textarea, .nav-item, .mobile-nav-item, .quick-action-btn").forEach(el => {
+          el.setAttribute("disabled", "true");
+          el.style.pointerEvents = "none";
+          el.style.opacity = "0.5";
+        });
+        const deactLogoutBtn = document.getElementById("deactivated-logout-btn");
+        if (deactLogoutBtn) {
+          deactLogoutBtn.onclick = async () => {
+            await MMP_Firebase.logoutUser();
+            window.location.replace("index.html");
+          };
+        }
+        lucide.createIcons();
+        return; // Halt all further dashboard processing for deactivated account!
+      } else {
+        if (lockoutModal) {
+          lockoutModal.style.display = "none";
+          lockoutModal.classList.remove("show");
+        }
+        document.querySelectorAll("button:not(#deactivated-logout-btn), input, select, textarea, .nav-item, .mobile-nav-item, .quick-action-btn").forEach(el => {
+          el.removeAttribute("disabled");
+          el.style.pointerEvents = "";
+          el.style.opacity = "";
+        });
+      }
+
+      // If user's email was updated in profile by admin, dynamically sync to local session
+      if (rawUserData?.profile?.email && !isInspecting) {
+        try {
+          const authSaved = localStorage.getItem("mmp_auth_user");
+          if (authSaved) {
+            const parsed = JSON.parse(authSaved);
+            if (parsed.email !== rawUserData.profile.email) {
+              parsed.email = rawUserData.profile.email;
+              localStorage.setItem("mmp_auth_user", JSON.stringify(parsed));
+            }
+          }
+        } catch (e) {}
+      }
+
       // Update UI components with fresh database snapshot
       updateUserProfileUI(isInspecting, inspectData);
       applyUserTheme();
@@ -114,8 +164,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const emailEl = document.getElementById("admin-inspect-user-email");
     const uidEl = document.getElementById("admin-inspect-user-uid");
 
-    if (nameEl) nameEl.textContent = inspectData?.name || "User Account";
-    if (emailEl) emailEl.textContent = inspectData?.email || "";
+    const profile = rawUserData?.profile || inspectData || {};
+    const isDeactivated = profile.status === "deactivated";
+
+    if (nameEl) {
+      nameEl.innerHTML = `${escapeHTML(profile.name || "User Account")} ${isDeactivated ? '<span style="background: rgba(239, 68, 68, 0.18); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 50px; font-size: 0.72rem; font-weight: 700; border: 1px solid rgba(239, 68, 68, 0.3); margin-left: 0.5rem;">Deactivated</span>' : ''}`;
+    }
+    if (emailEl) emailEl.textContent = profile.email || "";
     if (uidEl) uidEl.textContent = `UID: ${targetUid}`;
 
     // Shortcut: Jump to reports & download

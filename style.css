@@ -1852,6 +1852,22 @@ body {
 /* ========================================== */
 /* MODERN DATA TABLES & USER DIRECTORY STYLES */
 /* ========================================== */
+.admin-kpi-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+@media (max-width: 1024px) {
+  .admin-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -2359,4 +2375,106 @@ body {
     flex-wrap: wrap;
     justify-content: flex-start;
   }
+}
+
+/* ==========================================
+   REAL-TIME ACCOUNT DEACTIVATION LOCKOUT
+   ========================================== */
+.deactivated-backdrop {
+  z-index: 1000000 !important;
+  background-color: rgba(15, 23, 42, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.deactivated-modal-card {
+  border: 2px solid #ef4444 !important;
+  box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.45) !important;
+  max-width: 480px !important;
+  text-align: center;
+  padding: 2.25rem 1.75rem !important;
+  background: var(--bg-secondary) !important;
+  transform: translateY(0) scale(1) !important;
+  opacity: 1 !important;
+  border-radius: var(--border-radius-xl) !important;
+}
+
+.deactivated-icon-wrapper {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.35rem auto;
+  border: 2px solid rgba(239, 68, 68, 0.3);
+}
+
+.deactivated-icon-wrapper i,
+.deactivated-icon-wrapper svg {
+  width: 42px;
+  height: 42px;
+}
+
+/* ==========================================
+   ADMIN VISIBLE PASSWORD STYLING
+   ========================================== */
+.password-cell-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--border-radius-sm);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.password-cell-badge.not-set {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #d97706;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.user-pass-text {
+  letter-spacing: 0.03em;
+}
+
+.btn-pass-copy {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+}
+
+.btn-pass-copy:hover {
+  color: var(--primary);
+  background: rgba(99, 102, 241, 0.12);
+  transform: scale(1.1);
+}
+
+.btn-input-eye {
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-input-eye:hover {
+  color: var(--primary) !important;
+  transform: scale(1.1);
 }

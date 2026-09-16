@@ -853,6 +853,30 @@
     </div>
   </div>
 
+  <!-- Modal 6: Real-time Account Deactivation Lockout Overlay -->
+  <div class="modal-backdrop deactivated-backdrop" id="deactivated-lockout-modal" style="display: none;">
+    <div class="modal deactivated-modal-card">
+      <div class="deactivated-icon-wrapper">
+        <i data-lucide="shield-alert"></i>
+      </div>
+      <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.65rem;">Account Deactivated</h2>
+      <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; margin-bottom: 1.25rem;">
+        Your user account has been deactivated by the system administrator. While deactivated, access to your financial transactions, data entry, reports, and settings is suspended.
+      </p>
+      <div style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid #ef4444; border-radius: 8px; padding: 0.85rem 1rem; text-align: left; margin-bottom: 1.5rem;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 0.4rem;">
+          <i data-lucide="lock" style="width: 15px; height: 15px;"></i> All Dashboard Features Locked
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+          Please contact the administrator if you need your account reactivated.
+        </div>
+      </div>
+      <button type="button" class="btn btn-danger" id="deactivated-logout-btn" style="width: 100%; padding: 0.85rem 1.25rem; font-size: 0.95rem; font-weight: 700; justify-content: center;">
+        <i data-lucide="log-out"></i> Sign Out
+      </button>
+    </div>
+  </div>
+
   <!-- Dashboard Controller Script -->
   <script src="firebase.js"></script>
   <script src="dashboard.js"></script>

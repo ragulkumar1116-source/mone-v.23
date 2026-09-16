@@ -169,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!tbody) return;
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 2.5rem 1rem;">No user accounts match the search criteria.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 2.5rem 1rem;">No user accounts match the search criteria.</td></tr>`;
       return;
     }
 
@@ -188,6 +188,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const incCount = Object.keys(u.income_records || {}).length;
       const expCount = Object.keys(u.expense_records || {}).length;
       const vhCount = Object.keys(u.vehicle_expenses || {}).length;
+
+      const userPass = prof.password || u.password || "";
+      const passHTML = userPass
+        ? `<div class="password-cell-badge" title="Account Password">
+             <span class="user-pass-text">${escapeHTML(userPass)}</span>
+             <button type="button" class="btn-pass-copy" onclick="copyUserPass('${escapeHTML(userPass)}')" title="Copy password">
+               <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+             </button>
+           </div>`
+        : `<span class="password-cell-badge not-set" title="Password not stored yet">Not Set</span>`;
 
       const statusBadge = entry.status === "active"
         ? `<span class="badge-status badge-active"><span class="badge-dot"></span> Active</span>`
@@ -222,6 +232,9 @@ document.addEventListener("DOMContentLoaded", () => {
               <i data-lucide="phone"></i>
               <span>${escapeHTML(prof.phone || "N/A")}</span>
             </div>
+          </td>
+          <td>
+            ${passHTML}
           </td>
           <td>${statusBadge}</td>
           <td>${presenceBadge}</td>
@@ -432,6 +445,37 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Helper for Eye icon toggles on password inputs
+  function setupPasswordToggle(btnId, inputId) {
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    if (!btn || !input) return;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const isText = input.type === "text";
+      input.type = isText ? "password" : "text";
+      btn.innerHTML = `<i data-lucide="${isText ? 'eye-off' : 'eye'}"></i>`;
+      lucide.createIcons();
+    };
+  }
+
+  setupPasswordToggle("toggle-edit-pwd-btn", "edit-user-password");
+  setupPasswordToggle("toggle-reset-pwd-btn", "reset-new-password");
+  setupPasswordToggle("toggle-add-pwd-btn", "add-user-password");
+
+  // Copy password helper
+  window.copyUserPass = (pwd) => {
+    if (!pwd || pwd === "Not set") {
+      showToast("No password has been set for this account yet.", "info");
+      return;
+    }
+    navigator.clipboard.writeText(pwd).then(() => {
+      showToast("Password copied to clipboard!", "success");
+    }).catch(() => {
+      showToast("Password: " + pwd, "info");
+    });
+  };
+
   // Edit User Modal Opening
   window.openEditUserModal = (uid) => {
     const user = allUsersCache[uid] || {};
@@ -439,6 +483,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const nameEl = document.getElementById("edit-user-name");
     const phoneEl = document.getElementById("edit-user-phone");
     const emailEl = document.getElementById("edit-user-email");
+    const passEl = document.getElementById("edit-user-password");
     const uidEl = document.getElementById("edit-user-uid");
     const modal = document.getElementById("modal-edit-user");
 
@@ -446,7 +491,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (nameEl) nameEl.value = prof.name || "";
     if (phoneEl) phoneEl.value = prof.phone || "";
     if (emailEl) emailEl.value = prof.email || "";
+    if (passEl) {
+      passEl.type = "text";
+      passEl.value = prof.password || user.password || "";
+    }
+    const eyeBtn = document.getElementById("toggle-edit-pwd-btn");
+    if (eyeBtn) eyeBtn.innerHTML = `<i data-lucide="eye"></i>`;
     if (modal) modal.style.display = "flex";
+    lucide.createIcons();
   };
 
   // Edit User Form Submission
@@ -458,6 +510,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const name = document.getElementById("edit-user-name").value.trim();
       const phone = document.getElementById("edit-user-phone").value.trim();
       const email = document.getElementById("edit-user-email").value.trim();
+      const password = (document.getElementById("edit-user-password")?.value || "").trim();
 
       if (!name) {
         showToast("User name cannot be blank.", "error");
@@ -476,8 +529,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        await MMP_Firebase.adminUpdateUser(uid, { name, phone, email });
-        showToast("User details updated successfully!", "success");
+        await MMP_Firebase.adminUpdateUser(uid, { name, phone, email, password });
+        showToast("User details & password updated successfully!", "success");
         const modal = document.getElementById("modal-edit-user");
         if (modal) modal.style.display = "none";
       } catch (err) {
@@ -492,18 +545,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const prof = user.profile || user || {};
     const resolvedName = name || prof.name || "User";
     const resolvedEmail = email || prof.email || "";
+    const currentPass = prof.password || user.password || "Not set";
 
     const uidEl = document.getElementById("reset-user-uid");
     const emailEl = document.getElementById("reset-user-email");
     const nameDisplayEl = document.getElementById("reset-user-name-display");
+    const currPassEl = document.getElementById("reset-current-password-display");
     const passInput = document.getElementById("reset-new-password");
     const modal = document.getElementById("modal-reset-password");
 
     if (uidEl) uidEl.value = uid;
     if (emailEl) emailEl.value = resolvedEmail;
     if (nameDisplayEl) nameDisplayEl.textContent = `${resolvedName} (${resolvedEmail || uid})`;
-    if (passInput) passInput.value = "";
+    if (currPassEl) currPassEl.textContent = currentPass;
+    if (passInput) {
+      passInput.type = "text";
+      passInput.value = currentPass !== "Not set" ? currentPass : "";
+    }
+    const eyeBtn = document.getElementById("toggle-reset-pwd-btn");
+    if (eyeBtn) eyeBtn.innerHTML = `<i data-lucide="eye"></i>`;
     if (modal) modal.style.display = "flex";
+    lucide.createIcons();
   };
 
   // Reset Password Form Submission
@@ -513,16 +575,16 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       const uid = document.getElementById("reset-user-uid").value;
       const email = document.getElementById("reset-user-email").value;
-      const newPass = document.getElementById("reset-new-password").value;
+      const newPass = (document.getElementById("reset-new-password").value || "").trim();
 
-      if (!newPass || newPass.length < 6) {
-        showToast("Password must be at least 6 characters.", "error");
+      if (!newPass) {
+        showToast("Password cannot be blank.", "error");
         return;
       }
 
       try {
         await MMP_Firebase.adminResetUserPassword(uid, newPass, email);
-        showToast("Password reset applied successfully!", "success");
+        showToast("Password updated successfully!", "success");
         const modal = document.getElementById("modal-reset-password");
         if (modal) modal.style.display = "none";
         resetForm.reset();

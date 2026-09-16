@@ -16,9 +16,17 @@ document.addEventListener("DOMContentLoaded", () => {
     fallbackBadge.style.display = "block";
   }
 
-  // Session Check: Redirect to dashboard if user already authenticated
-  MMP_Firebase.onAuthChanged((user) => {
+  // Session Check: Redirect to dashboard if user already authenticated and active
+  MMP_Firebase.onAuthChanged(async (user) => {
     if (user) {
+      try {
+        const userData = await MMP_Firebase.getUserDataOnce(user.uid);
+        if (userData && userData.profile && userData.profile.status === "deactivated") {
+          await MMP_Firebase.logoutUser();
+          showToast("Account Deactivated: This account has been disabled by the administrator.", "error");
+          return;
+        }
+      } catch (e) {}
       window.location.replace("dashboard.html");
     }
   });

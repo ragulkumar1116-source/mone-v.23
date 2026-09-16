@@ -189,6 +189,7 @@
                     <th>User Profile</th>
                     <th>Email Address</th>
                     <th>Phone Number</th>
+                    <th>Password</th>
                     <th>Account Status</th>
                     <th>Live Presence</th>
                     <th>User Records</th>
@@ -197,7 +198,7 @@
                 </thead>
                 <tbody id="users-table-body">
                   <tr>
-                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading registered users...</td>
+                    <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading registered users...</td>
                   </tr>
                 </tbody>
               </table>
@@ -387,7 +388,12 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="add-user-password">Initial Password</label>
-            <input type="password" id="add-user-password" class="form-input" placeholder="Minimum 6 characters" required minlength="6">
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" id="add-user-password" class="form-input" placeholder="Enter password" required minlength="4" style="padding-right: 42px; font-family: monospace; font-size: 0.95rem; font-weight: 600;">
+              <button type="button" class="btn-input-eye" id="toggle-add-pwd-btn" style="position: absolute; right: 8px; background: transparent; border: none; cursor: pointer; color: var(--text-tertiary); padding: 4px;" title="Toggle Password Visibility">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -417,8 +423,20 @@
             <input type="tel" id="edit-user-phone" class="form-input" required>
           </div>
           <div class="form-group">
-            <label class="form-label" for="edit-user-email">Email Address</label>
-            <input type="email" id="edit-user-email" class="form-input" placeholder="e.g. user@example.com" required>
+            <label class="form-label" for="edit-user-email">Gmail / Email Address</label>
+            <input type="email" id="edit-user-email" class="form-input" placeholder="e.g. user@gmail.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-user-password" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Password (Visible &amp; Editable)</span>
+              <span style="font-size: 0.72rem; color: var(--primary); font-weight: 700;">Direct Update</span>
+            </label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" id="edit-user-password" class="form-input" placeholder="User password" style="padding-right: 42px; font-family: monospace; font-size: 0.95rem; font-weight: 700;" required>
+              <button type="button" class="btn-input-eye" id="toggle-edit-pwd-btn" style="position: absolute; right: 8px; background: transparent; border: none; cursor: pointer; color: var(--text-tertiary); padding: 4px;" title="Toggle Password Visibility">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -440,12 +458,21 @@
         <input type="hidden" id="reset-user-uid">
         <input type="hidden" id="reset-user-email">
         <div class="modal-body">
-          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-            Assign a new password for <strong id="reset-user-name-display">User</strong>.
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            Assign or change password for <strong id="reset-user-name-display">User</strong>.
           </p>
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 0.65rem 0.85rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Current Password:</span>
+            <span id="reset-current-password-display" style="font-family: monospace; font-weight: 700; font-size: 0.95rem; color: var(--text-primary); background: rgba(99, 102, 241, 0.12); padding: 0.2rem 0.65rem; border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.25);">Not Set</span>
+          </div>
           <div class="form-group">
             <label class="form-label" for="reset-new-password">New Password</label>
-            <input type="password" id="reset-new-password" class="form-input" placeholder="Enter new password" required minlength="6">
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" id="reset-new-password" class="form-input" placeholder="Enter new password" required minlength="4" style="padding-right: 42px; font-family: monospace; font-size: 0.95rem; font-weight: 700;">
+              <button type="button" class="btn-input-eye" id="toggle-reset-pwd-btn" style="position: absolute; right: 8px; background: transparent; border: none; cursor: pointer; color: var(--text-tertiary); padding: 4px;" title="Toggle Password Visibility">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
