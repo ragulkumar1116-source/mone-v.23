@@ -1,0 +1,17 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "weatherStation": {
+      "logs": {
+        ".indexOn": ["lastUpdate"]
+      }
+    },
+    "user_sessions": {
+      ".indexOn": ["loginTime", "uid", "status"]
+    },
+    "activity_logs": {
+      ".indexOn": ["timestamp", "uid"]
+    }
+  }
+}
