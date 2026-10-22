@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRISHTECH - Admin Console</title>
+  <meta name="description" content="KRISHTECH administrator console for user management, system statistics, attendance, and application settings.">
+  <meta name="robots" content="noindex, nofollow">
+  
+  <link rel="icon" type="image/svg+xml" href="krish-icon.svg">
+  <link rel="apple-touch-icon" href="krish-icon.svg">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase Compat Library Core CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body data-theme="light">
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Admin Main Layout wrapper -->
+  <div class="app-layout">
+    
+    <!-- Desktop Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-logo brand-logo-wrap">
+        <img src="krish-logo.svg" alt="KRISHTECH" class="brand-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="brand-logo-text-fallback" style="display: none;">
+          <i data-lucide="shield-check"></i>
+          <span>KRISH<span style="color: var(--primary);">TECH</span></span>
+        </div>
+      </div>
+
+      <div class="user-card-compact" style="background: rgba(79, 70, 229, 0.08); border-left: 3px solid var(--primary);">
+        <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+          <i data-lucide="shield-alert" style="width: 16px; height: 16px;"></i> Administrator
+        </div>
+        <div class="user-email-compact" id="admin-user-email">Verifying...</div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="nav-menu">
+        <a href="#" class="nav-link active" data-tab="users" id="tab-link-users">
+          <i data-lucide="users"></i> User Management
+        </a>
+        <a href="#" class="nav-link" data-tab="sessions" id="tab-link-sessions">
+          <i data-lucide="clock"></i> Coming &amp; Going Logs
+        </a>
+        <a href="#" class="nav-link" data-tab="stats" id="tab-link-stats">
+          <i data-lucide="bar-chart-2"></i> System Statistics
+        </a>
+        <a href="#" class="nav-link" data-tab="activity" id="tab-link-activity">
+          <i data-lucide="activity"></i> Realtime Audit Logs
+        </a>
+        <a href="#" class="nav-link" data-tab="settings" id="tab-link-settings">
+          <i data-lucide="sliders"></i> System Settings
+        </a>
+      </nav>
+
+      <div class="nav-footer">
+        <button id="admin-logout-btn" class="nav-link" style="border: none; background: transparent; width: 100%; text-align: left; cursor: pointer; color: var(--expense);">
+          <i data-lucide="log-out"></i> Sign Out Admin
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+      <a href="#" class="mobile-nav-link active" data-tab="users">
+        <i data-lucide="users"></i>
+        <span>Users</span>
+      </a>
+      <a href="#" class="mobile-nav-link" data-tab="sessions">
+        <i data-lucide="clock"></i>
+        <span>Sessions</span>
+      </a>
+      <a href="#" class="mobile-nav-link" data-tab="stats">
+        <i data-lucide="bar-chart-2"></i>
+        <span>Stats</span>
+      </a>
+      <a href="#" class="mobile-nav-link" data-tab="activity">
+        <i data-lucide="activity"></i>
+        <span>Logs</span>
+      </a>
+      <a href="#" class="mobile-nav-link" data-tab="settings">
+        <i data-lucide="sliders"></i>
+        <span>Config</span>
+      </a>
+    </nav>
+
+    <!-- Main Workspace Content Panel -->
+    <main class="main-content">
+      
+      <!-- Top header strip -->
+      <header class="main-header" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <h2 class="page-title" id="admin-header-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="shield-check" style="color: var(--primary);"></i> User Management
+          </h2>
+          <span class="live-pulse-badge" style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 50px; border: 1px solid rgba(16, 185, 129, 0.3);">
+            <span class="pulse-dot"></span> Admin Live
+          </span>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" id="admin-add-user-btn" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+            <i data-lucide="user-plus"></i> Add New User
+          </button>
+        </div>
+      </header>
+
+      <!-- Dashboard Main Viewport -->
+      <div class="content-body">
+        
+        <!-- ========================================== -->
+        <!-- TAB 1: USER MANAGEMENT                     -->
+        <!-- ========================================== -->
+        <section id="pane-users" class="view-pane fade-in">
+          
+          <!-- Summary Cards -->
+          <div class="summary-grid admin-kpi-grid" style="margin-bottom: 1.5rem;">
+            <div class="card summary-card">
+              <div class="summary-header">
+                <span class="summary-title">Total Users</span>
+                <div class="summary-icon"><i data-lucide="users"></i></div>
+              </div>
+              <div class="summary-value" id="kpi-total-users">0</div>
+              <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;">Registered accounts</div>
+            </div>
+
+            <div class="card summary-card card-income">
+              <div class="summary-header">
+                <span class="summary-title">Active Accounts</span>
+                <div class="summary-icon"><i data-lucide="check-circle"></i></div>
+              </div>
+              <div class="summary-value" id="kpi-active-users">0</div>
+              <div style="font-size: 0.75rem; color: #059669; font-weight: 600; margin-top: 0.25rem;">Enabled access</div>
+            </div>
+
+            <div class="card summary-card card-expense">
+              <div class="summary-header">
+                <span class="summary-title">Deactivated</span>
+                <div class="summary-icon"><i data-lucide="user-x"></i></div>
+              </div>
+              <div class="summary-value" id="kpi-deactivated-users">0</div>
+              <div style="font-size: 0.75rem; color: var(--expense); font-weight: 600; margin-top: 0.25rem;">Blocked access</div>
+            </div>
+
+            <div class="card summary-card">
+              <div class="summary-header">
+                <span class="summary-title">Currently Online</span>
+                <div class="summary-icon"><i data-lucide="radio"></i></div>
+              </div>
+              <div class="summary-value" id="kpi-online-count" style="color: #059669;">0</div>
+              <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;">Realtime presence</div>
+            </div>
+          </div>
+
+          <!-- User Directory Card -->
+          <div class="card section-card">
+            <div class="section-header" style="flex-wrap: wrap; gap: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <h3 class="section-title"><i data-lucide="users"></i> All User Accounts</h3>
+                <span id="users-count-badge" style="font-size: 0.75rem; font-weight: 700; color: var(--primary); background: var(--primary-glow); padding: 0.2rem 0.6rem; border-radius: 50px; border: 1px solid var(--border-color);">0 Users</span>
+              </div>
+              
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="users-search-input" class="form-input" placeholder="Search by name, email, phone..." style="width: 250px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+                <select id="users-status-filter" class="form-select" style="width: 140px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+                  <option value="all">All Status</option>
+                  <option value="active">Active Only</option>
+                  <option value="deactivated">Deactivated</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User Profile</th>
+                    <th>Email Address</th>
+                    <th>Phone Number</th>
+                    <th>Password</th>
+                    <th>Account Status</th>
+                    <th>Live Presence</th>
+                    <th>User Records</th>
+                    <th style="text-align: right;">Access &amp; Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-body">
+                  <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading registered users...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: COMING & GOING SESSIONS             -->
+        <!-- ========================================== -->
+        <section id="pane-sessions" class="view-pane fade-in" style="display: none;">
+          <div class="card section-card">
+            <div class="section-header" style="flex-wrap: wrap; gap: 0.75rem;">
+              <h3 class="section-title"><i data-lucide="clock"></i> Real-time Attendance (Who is coming &amp; going)</h3>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="session-search-input" class="form-input" placeholder="Search by user or email..." style="width: 240px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+                <select id="session-status-filter" class="form-select" style="width: 140px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+                  <option value="all">All Sessions</option>
+                  <option value="online">Online Now</option>
+                  <option value="offline">Finished Sessions</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Device</th>
+                    <th>Status</th>
+                    <th>Arrival / Login Time</th>
+                    <th>Departure / Last Seen</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody id="sessions-table-body">
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading attendance logs...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: SYSTEM STATISTICS & DATA            -->
+        <!-- ========================================== -->
+        <section id="pane-stats" class="view-pane fade-in" style="display: none;">
+          <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1.5rem;">
+            <div class="card summary-card card-balance">
+              <div class="summary-header">
+                <span class="summary-title">Cumulative System Volume</span>
+                <div class="summary-icon"><i data-lucide="wallet"></i></div>
+              </div>
+              <div class="summary-value" id="stats-total-volume">₹0.00</div>
+              <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;">Total processed across all users</div>
+            </div>
+
+            <div class="card summary-card card-income">
+              <div class="summary-header">
+                <span class="summary-title">Total Incomes Recorded</span>
+                <div class="summary-icon"><i data-lucide="trending-up"></i></div>
+              </div>
+              <div class="summary-value" id="stats-total-income">₹0.00</div>
+              <div style="font-size: 0.75rem; color: #059669; font-weight: 600; margin-top: 0.25rem;" id="stats-income-count">0 items</div>
+            </div>
+
+            <div class="card summary-card card-expense">
+              <div class="summary-header">
+                <span class="summary-title">Total Expenses Recorded</span>
+                <div class="summary-icon"><i data-lucide="trending-down"></i></div>
+              </div>
+              <div class="summary-value" id="stats-total-expense">₹0.00</div>
+              <div style="font-size: 0.75rem; color: var(--expense); font-weight: 600; margin-top: 0.25rem;" id="stats-expense-count">0 items</div>
+            </div>
+
+            <div class="card summary-card">
+              <div class="summary-header">
+                <span class="summary-title">Vehicle Expenses Recorded</span>
+                <div class="summary-icon"><i data-lucide="car"></i></div>
+              </div>
+              <div class="summary-value" id="stats-total-vehicle">₹0.00</div>
+              <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;" id="stats-vehicle-count">0 items</div>
+            </div>
+          </div>
+
+          <!-- Application Data Management Card -->
+          <div class="card section-card">
+            <div class="section-header">
+              <h3 class="section-title"><i data-lucide="database"></i> Manage Application Data</h3>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+              Export system summaries or review database health without modifying or losing any existing user ledger records.
+            </p>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+              <button class="btn btn-secondary" id="admin-export-users-json-btn">
+                <i data-lucide="download"></i> Backup User Metadata (JSON)
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: REALTIME AUDIT LOGS                 -->
+        <!-- ========================================== -->
+        <section id="pane-activity" class="view-pane fade-in" style="display: none;">
+          <div class="card section-card">
+            <div class="section-header" style="flex-wrap: wrap; gap: 0.75rem;">
+              <h3 class="section-title"><i data-lucide="activity"></i> System Activity Audit Trail</h3>
+              <input type="text" id="activity-search-input" class="form-input" placeholder="Search activities..." style="width: 240px; padding: 0.4rem 0.75rem; font-size: 0.85rem;">
+            </div>
+
+            <div id="activity-stream-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading live activity...</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 5: SYSTEM SETTINGS                     -->
+        <!-- ========================================== -->
+        <section id="pane-settings" class="view-pane fade-in" style="display: none;">
+          <div class="card section-card" style="max-width: 650px;">
+            <div class="section-header">
+              <h3 class="section-title"><i data-lucide="sliders"></i> Platform Controls &amp; Settings</h3>
+            </div>
+            
+            <form id="admin-settings-form">
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="setting-announcement">System Announcement Banner</label>
+                <input type="text" id="setting-announcement" class="form-input" placeholder="Optional announcement displayed to users">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="setting-default-status">Default Status for New Registrations</label>
+                <select id="setting-default-status" class="form-select">
+                  <option value="active">Active (Immediate Login)</option>
+                  <option value="deactivated">Deactivated (Admin Approval Required)</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                  <input type="checkbox" id="setting-allow-reg" style="width: 18px; height: 18px;" checked>
+                  <span>Allow New User Registrations</span>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="save"></i> Save Platform Settings
+              </button>
+            </form>
+          </div>
+
+          <!-- Brevo Email & OTP Configuration Card -->
+          <div class="card section-card" style="max-width: 650px; margin-top: 1.5rem;">
+            <div class="section-header">
+              <h3 class="section-title"><i data-lucide="mail"></i> Brevo Email &amp; OTP Configuration</h3>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
+              Configure Brevo (formerly Sendinblue) Transactional API to deliver real-time OTP verification codes, password reset requests, and security alerts.
+            </p>
+
+            <form id="admin-brevo-form">
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="setting-brevo-key">Brevo API Key (v3)</label>
+                <div class="password-field-wrapper">
+                  <input type="password" id="setting-brevo-key" class="form-input" placeholder="xkeysib-..." autocomplete="off">
+                  <button type="button" class="password-toggle-btn" data-target="setting-brevo-key" aria-label="Toggle Brevo key visibility">
+                    <i data-lucide="eye"></i>
+                  </button>
+                </div>
+                <small style="color: var(--text-tertiary); font-size: 0.75rem;">
+                  Found in your Brevo Dashboard &rarr; SMTP &amp; API &rarr; API Keys.
+                </small>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="setting-brevo-sender-email">Verified Sender Email</label>
+                <input type="email" id="setting-brevo-sender-email" class="form-input" placeholder="e.g. aitsecurity6@gmail.com" required>
+                <small style="color: var(--text-tertiary); font-size: 0.75rem;">
+                  Must match a verified sender email in your Brevo account.
+                </small>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label" for="setting-brevo-sender-name">Sender Display Name</label>
+                <input type="text" id="setting-brevo-sender-name" class="form-input" placeholder="KRISHTECH Security" required>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button type="submit" id="save-brevo-btn" class="btn btn-primary">
+                  <i data-lucide="save"></i> Save Brevo Configuration
+                </button>
+                <button type="button" id="test-brevo-btn" class="btn btn-secondary">
+                  <i data-lucide="send"></i> Send Test Verification Email
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- ADMIN MODALS                               -->
+  <!-- ========================================== -->
+
+  <!-- Modal 1: Add User Modal -->
+  <div class="modal-overlay" id="modal-add-user" style="display: none;">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="user-plus"></i> Add New User</h3>
+        <button class="modal-close" data-close="modal-add-user">&times;</button>
+      </div>
+      <form id="form-add-user">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="add-user-name">Full Name</label>
+            <input type="text" id="add-user-name" class="form-input" placeholder="e.g. John Doe" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-user-phone">Phone Number</label>
+            <input type="tel" id="add-user-phone" class="form-input" placeholder="e.g. +91 9876543210" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-user-email">Email Address</label>
+            <input type="email" id="add-user-email" class="form-input" placeholder="e.g. user@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add-user-password">Initial Password</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" id="add-user-password" class="form-input" placeholder="Enter password" required minlength="4" style="padding-right: 42px; font-family: monospace; font-size: 0.95rem; font-weight: 600;">
+              <button type="button" class="btn-input-eye" id="toggle-add-pwd-btn" style="position: absolute; right: 8px; background: transparent; border: none; cursor: pointer; color: var(--text-tertiary); padding: 4px;" title="Toggle Password Visibility">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-add-user">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Edit User Modal -->
+  <div class="modal-overlay" id="modal-edit-user" style="display: none;">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="edit"></i> Edit User Details</h3>
+        <button class="modal-close" data-close="modal-edit-user">&times;</button>
+      </div>
+      <form id="form-edit-user">
+        <input type="hidden" id="edit-user-uid">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="edit-user-name">Full Name</label>
+            <input type="text" id="edit-user-name" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-user-phone">Phone Number</label>
+            <input type="tel" id="edit-user-phone" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-user-email">Gmail / Email Address</label>
+            <input type="email" id="edit-user-email" class="form-input" placeholder="e.g. user@gmail.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="edit-user-password" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Password (Visible &amp; Editable)</span>
+              <span style="font-size: 0.72rem; color: var(--primary); font-weight: 700;">Direct Update</span>
+            </label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" id="edit-user-password" class="form-input" placeholder="User password" style="padding-right: 42px; font-family: monospace; font-size: 0.95rem; font-weight: 700;" required>
+              <button type="button" class="btn-input-eye" id="toggle-edit-pwd-btn" style="position: absolute; right: 8px; background: transparent; border: none; cursor: pointer; color: var(--text-tertiary); padding: 4px;" title="Toggle Password Visibility">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-edit-user">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Reset Password Modal -->
+  <div class="modal-overlay" id="modal-reset-password" style="display: none;">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="key-round"></i> Reset User Password</h3>
+        <button class="modal-close" data-close="modal-reset-password">&times;</button>
+      </div>
+      <form id="form-reset-password">
+        <input type="hidden" id="reset-user-uid">
+        <input type="hidden" id="reset-user-email">
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            Assign or change password for <strong id="reset-user-name-display">User</strong>.
+          </p>
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 0.65rem 0.85rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Current Password:</span>
+            <span id="reset-current-password-display" style="font-family: monospace; font-weight: 700; font-size: 0.95rem; color: var(--text-primary); background: rgba(99, 102, 241, 0.12); padding: 0.2rem 0.65rem; border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.25);">Not Set</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reset-new-password">New Password</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" id="reset-new-password" class="form-input" placeholder="Enter new password" required minlength="4" style="padding-right: 42px; font-family: monospace; font-size: 0.95rem; font-weight: 700;">
+              <button type="button" class="btn-input-eye" id="toggle-reset-pwd-btn" style="position: absolute; right: 8px; background: transparent; border: none; cursor: pointer; color: var(--text-tertiary); padding: 4px;" title="Toggle Password Visibility">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-reset-password">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Shared Services and Logic Scripts -->
+  <script src="email-service.js"></script>
+  <script src="firebase.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

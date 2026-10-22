@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forgot &amp; Reset Password - KRISHTECH</title>
+  <meta name="description" content="Securely verify your email with OTP and reset your password using Brevo and Firebase.">
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="krish-icon.svg">
+  <link rel="apple-touch-icon" href="krish-icon.svg">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase Compat Library Core CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- Toast Notifications Area -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <div class="auth-wrapper">
+    <div class="auth-container">
+      <div class="auth-logo-area" style="text-align: center; margin-bottom: 1.5rem;">
+        <img src="krish-logo.svg" alt="KRISHTECH" style="max-height: 56px; width: auto; margin: 0 auto; display: block;" onerror="this.style.display='none'; document.getElementById('main-logo-heading').style.display='block';">
+        <h1 class="auth-logo" id="main-logo-heading" style="display: none; font-size: 1.5rem; font-weight: 800;">
+          KRISH<span style="color: var(--primary);">TECH</span>
+        </h1>
+      </div>
+      
+      <div class="card panel-glass auth-card">
+        
+        <!-- Step Wizard Progress Header -->
+        <div class="step-wizard" id="step-wizard">
+          <div class="step-wizard-progress" id="step-progress-bar" style="width: 0%;"></div>
+          
+          <div class="step-item active" id="step-node-1">
+            <div class="step-circle">1</div>
+            <span class="step-label">Email</span>
+          </div>
+          
+          <div class="step-item" id="step-node-2">
+            <div class="step-circle">2</div>
+            <span class="step-label">Verify OTP</span>
+          </div>
+          
+          <div class="step-item" id="step-node-3">
+            <div class="step-circle">3</div>
+            <span class="step-label">New Password</span>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- STEP 1: ENTER EMAIL                        -->
+        <!-- ========================================== -->
+        <div id="step-1-section">
+          <h2 class="auth-title">Reset Password</h2>
+          <p class="auth-subtitle">Enter your registered email to receive an OTP verification code via Brevo</p>
+          
+          <form id="step-1-form" novalidate>
+            <div class="form-group">
+              <label for="email" class="form-label">Registered Email Address</label>
+              <input type="email" id="email" class="form-input" placeholder="e.g. yourname@example.com" required autocomplete="email" autofocus>
+            </div>
+            
+            <button type="submit" id="step-1-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+              <i data-lucide="send"></i>
+              <span>Send Verification Code</span>
+            </button>
+          </form>
+          
+          <div class="auth-actions" style="margin-top: 1.25rem;">
+            <a href="index.html" class="btn btn-secondary" id="back-to-login-link">
+              <i data-lucide="arrow-left"></i> Back To Login
+            </a>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- STEP 2: VERIFY 6-DIGIT OTP                 -->
+        <!-- ========================================== -->
+        <div id="step-2-section" style="display: none;">
+          <h2 class="auth-title">Verify OTP Code</h2>
+          <p class="auth-subtitle">
+            We sent a 6-digit code to <strong id="display-target-email" style="color: var(--text-primary); word-break: break-all;"></strong>
+          </p>
+
+          <form id="step-2-form" novalidate>
+            <!-- 6-digit OTP input grid -->
+            <div class="otp-grid">
+              <input type="text" class="otp-box" inputmode="numeric" maxlength="1" data-index="0" autocomplete="off" autofocus>
+              <input type="text" class="otp-box" inputmode="numeric" maxlength="1" data-index="1" autocomplete="off">
+              <input type="text" class="otp-box" inputmode="numeric" maxlength="1" data-index="2" autocomplete="off">
+              <input type="text" class="otp-box" inputmode="numeric" maxlength="1" data-index="3" autocomplete="off">
+              <input type="text" class="otp-box" inputmode="numeric" maxlength="1" data-index="4" autocomplete="off">
+              <input type="text" class="otp-box" inputmode="numeric" maxlength="1" data-index="5" autocomplete="off">
+            </div>
+
+            <div class="resend-row">
+              <span id="resend-timer-label">Resend code in <strong id="resend-timer-seconds">60</strong>s</span>
+              <button type="button" id="resend-otp-btn" class="btn-link" disabled>Resend Code</button>
+            </div>
+
+            <button type="submit" id="step-2-btn" class="btn btn-primary" style="width: 100%; margin-top: 1.25rem;">
+              <i data-lucide="shield-check"></i>
+              <span>Verify Code</span>
+            </button>
+          </form>
+
+          <div class="auth-actions" style="margin-top: 1.25rem;">
+            <button type="button" class="btn btn-secondary" id="back-to-step-1-btn" style="width: 100%;">
+              <i data-lucide="arrow-left"></i> Change Email
+            </button>
+          </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- STEP 3: NEW PASSWORD                       -->
+        <!-- ========================================== -->
+        <div id="step-3-section" style="display: none;">
+          <h2 class="auth-title">Create New Password</h2>
+          <p class="auth-subtitle">Enter a new secure password for your account</p>
+
+          <form id="step-3-form" novalidate>
+            <div class="form-group">
+              <label for="new-password" class="form-label">New Password</label>
+              <div class="password-field-wrapper">
+                <input type="password" id="new-password" class="form-input" placeholder="Min. 6 characters" required autocomplete="new-password" autofocus>
+                <button type="button" class="password-toggle-btn" data-target="new-password" aria-label="Toggle password visibility">
+                  <i data-lucide="eye"></i>
+                </button>
+              </div>
+              
+              <!-- Strength meter -->
+              <div class="password-strength-container">
+                <div class="password-strength-track">
+                  <div class="password-strength-bar" id="password-strength-bar"></div>
+                </div>
+                <div class="password-strength-text">
+                  <span>Strength: <strong id="password-strength-label">Too short</strong></span>
+                  <span id="password-req-hint">Min. 6 chars</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+              <label for="confirm-new-password" class="form-label">Confirm New Password</label>
+              <div class="password-field-wrapper">
+                <input type="password" id="confirm-new-password" class="form-input" placeholder="Re-enter your new password" required autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" data-target="confirm-new-password" aria-label="Toggle password visibility">
+                  <i data-lucide="eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" id="step-3-btn" class="btn btn-primary" style="width: 100%; margin-top: 1.25rem;">
+              <i data-lucide="lock"></i>
+              <span>Save New Password</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- STEP 4: SUCCESS CONFIRMATION               -->
+        <!-- ========================================== -->
+        <div id="step-success-section" style="display: none; text-align: center; padding: 1rem 0;">
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem auto; border: 2px solid #10b981;">
+            <i data-lucide="check" style="width: 36px; height: 36px;"></i>
+          </div>
+          
+          <h2 class="auth-title" style="color: #10b981;">Password Reset Successful!</h2>
+          <p class="auth-subtitle" style="margin-bottom: 1.75rem;">
+            Your account password has been updated in Firebase Realtime Database. You can now log in securely with your new password.
+          </p>
+
+          <a href="index.html" class="btn btn-primary" style="width: 100%;">
+            <i data-lucide="log-in"></i> Proceed to Login
+          </a>
+        </div>
+
+      </div>
+      
+      <div class="auth-footer">
+        <p>© 2026 KRISHTECH &bull; Money Manager Pro &bull; Secured with Brevo &amp; Firebase</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Services and Logic Scripts -->
+  <script src="email-service.js"></script>
+  <script src="firebase.js"></script>
+  <script src="forgot.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW:', err));
+      });
+    }
+  </script>
+</body>
+</html>
