@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - KRISHTECH</title>
+  <meta name="description" content="Create a new account on KRISHTECH to track budgets, income, expenses, and vehicle bills.">
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="krish-icon.svg">
+  <link rel="apple-touch-icon" href="krish-icon.svg">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KRISHTECH">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase Compat Library Core CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- Toast Notifications Area -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <div class="auth-wrapper">
+    <div class="auth-container">
+      <div class="auth-logo-area" style="text-align: center; margin-bottom: 1.5rem;">
+        <img src="krish-logo.svg" alt="KRISHTECH" style="max-height: 56px; width: auto; margin: 0 auto; display: block;" onerror="this.style.display='none'; document.getElementById('main-logo-heading').style.display='block';">
+        <h1 class="auth-logo" id="main-logo-heading" style="display: none; font-size: 1.5rem; font-weight: 800;">
+          KRISH<span style="color: var(--primary);">TECH</span>
+        </h1>
+      </div>
+      
+      <div class="card panel-glass auth-card">
+        <h2 class="auth-title">Create Account</h2>
+        <p class="auth-subtitle">Join us to start managing your personal capital</p>
+        
+        <form id="register-form" novalidate>
+          <div class="form-group">
+            <label for="fullName" class="form-label">Full Name</label>
+            <input type="text" id="fullName" class="form-input" placeholder="e.g. Ragul" required autocomplete="name">
+          </div>
+
+          <div class="form-group">
+            <label for="mobileNumber" class="form-label">Mobile Number</label>
+            <input type="tel" id="mobileNumber" class="form-input" placeholder="e.g. +91 9876543210" required autocomplete="tel">
+          </div>
+          
+          <div class="form-group">
+            <label for="email" class="form-label">Email Address</label>
+            <input type="email" id="email" class="form-input" placeholder="e.g. ragul@gmail.com" required autocomplete="email">
+          </div>
+          
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" class="form-input" placeholder="Min. 6 characters" required autocomplete="new-password">
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <input type="password" id="confirmPassword" class="form-input" placeholder="Confirm your password" required autocomplete="new-password">
+          </div>
+          
+          <button type="submit" id="register-submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            <span>Register</span>
+          </button>
+        </form>
+        
+        <div class="auth-actions">
+          <a href="index.html" class="btn btn-secondary" id="back-to-login-link">
+            <i data-lucide="arrow-left"></i> Back To Login
+          </a>
+        </div>
+      </div>
+      
+      <div class="auth-footer">
+        <p>© 2026 Money Manager Pro. Built for mobile and desktop.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Services and Logic Scripts -->
+  <script src="firebase.js"></script>
+  <script src="newuser.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW:', err));
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - KRISHTECH</title>
+  <meta name="description" content="KRISHTECH financial management dashboard. Manage income, expenses, custom categories, vehicle bills, calendar logs, and export reports.">
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="krish-icon.svg">
+  <link rel="apple-touch-icon" href="krish-icon.svg">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KRISHTECH">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase Compat Library Core CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- ChartJS (Charts Engine) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- SheetJS (Excel Engine) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- jsPDF & AutoTable plugin (PDF Engine) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body data-theme="light">
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Dashboard Main Layout wrapper -->
+  <div class="app-layout">
+    
+    <!-- Desktop Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-logo brand-logo-wrap">
+        <img src="krish-logo.svg" alt="KRISHTECH" class="brand-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="brand-logo-text-fallback" style="display: none;">
+          <i data-lucide="wallet"></i>
+          <span>KRISH<span style="color: var(--primary);">TECH</span></span>
+        </div>
+      </div>
+
+      <!-- User Card Section -->
+      <div class="user-card-compact" id="sidebar-user-card">
+        <div class="user-name-compact" id="sb-user-name">Loading...</div>
+        <div class="user-phone-compact" id="sb-user-phone">...</div>
+        <div class="user-email-compact" id="sb-user-email">...</div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="nav-menu">
+        <a href="#" class="nav-link active" data-tab="overview">
+          <i data-lucide="layout-dashboard"></i> Overview
+        </a>
+        <a href="#" class="nav-link" data-tab="transactions">
+          <i data-lucide="arrow-left-right"></i> Transactions
+        </a>
+        <a href="#" class="nav-link" data-tab="vehicles">
+          <i data-lucide="car"></i> Vehicle Expenses
+        </a>
+        <a href="#" class="nav-link" data-tab="custom-categories">
+          <i data-lucide="tag"></i> Custom Categories
+        </a>
+        <a href="#" class="nav-link" data-tab="reports">
+          <i data-lucide="file-bar-chart-2"></i> Reports & Filter
+        </a>
+      </nav>
+
+      <!-- Sidebar footer links -->
+      <div class="nav-footer">
+        <a href="settings.html" class="nav-link" style="margin-bottom: 0.5rem;">
+          <i data-lucide="settings"></i> Settings
+        </a>
+        <button id="logout-btn" class="nav-link" style="border: none; background: transparent; width: 100%; text-align: left; cursor: pointer; color: var(--expense);">
+          <i data-lucide="log-out"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Navigation (Visible on screen widths <= 768px) -->
+    <nav class="mobile-bottom-nav">
+      <a href="#" class="mobile-nav-link active" data-tab="overview">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Overview</span>
+      </a>
+      <a href="#" class="mobile-nav-link" data-tab="transactions">
+        <i data-lucide="arrow-left-right"></i>
+        <span>Txns</span>
+      </a>
+      <a href="#" class="mobile-nav-link" data-tab="vehicles">
+        <i data-lucide="car"></i>
+        <span>Vehicle</span>
+      </a>
+      <a href="#" class="mobile-nav-link" data-tab="reports">
+        <i data-lucide="file-bar-chart-2"></i>
+        <span>Reports</span>
+      </a>
+      <a href="settings.html" class="mobile-nav-link">
+        <i data-lucide="settings"></i>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <!-- Main Workspace Content Panel -->
+    <main class="main-content">
+      
+      <!-- Admin Live Account Inspection Banner (Only rendered when Admin accesses a user account) -->
+      <div id="admin-inspect-banner" class="admin-inspect-banner" style="display: none;">
+        <div class="admin-inspect-left">
+          <div class="admin-inspect-shield-badge">
+            <i data-lucide="shield-alert"></i>
+            <span>ADMIN ACCESS MODE</span>
+          </div>
+          <div class="admin-inspect-meta">
+            Viewing real account of: <strong id="admin-inspect-user-name">Loading...</strong>
+            <span class="admin-inspect-email-pill" id="admin-inspect-user-email">...</span>
+            <span class="admin-inspect-uid-pill" id="admin-inspect-user-uid">UID: ...</span>
+          </div>
+        </div>
+        <div class="admin-inspect-right">
+          <button type="button" class="btn btn-inspect-shortcut" id="admin-jump-reports-btn">
+            <i data-lucide="file-bar-chart-2"></i> Reports &amp; Download
+          </button>
+          <button type="button" class="btn btn-inspect-shortcut" id="admin-jump-transactions-btn">
+            <i data-lucide="arrow-left-right"></i> All Transactions
+          </button>
+          <a href="admin.html" id="exit-admin-inspect-btn" class="btn btn-inspect-exit">
+            <i data-lucide="arrow-left"></i> Return to Admin Console
+          </a>
+        </div>
+      </div>
+
+      <!-- Top header strip -->
+      <header class="main-header">
+        <h2 class="page-title" id="page-display-title">Overview</h2>
+        <div class="header-actions">
+          <button id="pwa-header-install-btn" class="btn btn-secondary btn-sm pwa-install-trigger" style="display: none; align-items: center; gap: 0.4rem; font-weight: 700;">
+            <i data-lucide="download"></i> Install App
+          </button>
+          <div id="quick-action-buttons">
+            <button class="btn btn-income" id="quick-add-income-btn">
+              <i data-lucide="plus-circle"></i> Income
+            </button>
+            <button class="btn btn-danger" id="quick-add-expense-btn">
+              <i data-lucide="minus-circle"></i> Expense
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard Main Viewport -->
+      <div class="content-body">
+        
+        <!-- ========================================== -->
+        <!-- VIEW SECTION 1: OVERVIEW                    -->
+        <!-- ========================================== -->
+        <!-- ========================================== -->
+        <!-- VIEW SECTION 1: OVERVIEW                    -->
+        <!-- ========================================== -->
+        <section id="view-overview" class="view-pane fade-in">
+          
+
+
+          <!-- Advanced Summary Metrics Cards Grid -->
+          <div class="summary-grid">
+            <div class="card summary-card card-balance">
+              <div class="summary-header">
+                <span class="summary-title">Cumulative Balance</span>
+                <div class="summary-icon"><i data-lucide="wallet"></i></div>
+              </div>
+              <div class="summary-value" id="summary-balance">₹0.00</div>
+              <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;">All-time savings</div>
+            </div>
+
+            <div class="card summary-card card-income">
+              <div class="summary-header">
+                <span class="summary-title" id="lbl-dash-income">Monthly Income</span>
+                <div class="summary-icon"><i data-lucide="trending-up"></i></div>
+              </div>
+              <div class="summary-value" id="summary-income">₹0.00</div>
+              <div style="font-size: 0.75rem; color: #059669; font-weight: 600; margin-top: 0.25rem;" id="dash-income-sub">Active period</div>
+            </div>
+
+            <div class="card summary-card card-expense">
+              <div class="summary-header">
+                <span class="summary-title" id="lbl-dash-expense">General Expense</span>
+                <div class="summary-icon"><i data-lucide="trending-down"></i></div>
+              </div>
+              <div class="summary-value" id="summary-expense">₹0.00</div>
+              <div style="font-size: 0.75rem; color: #dc2626; font-weight: 600; margin-top: 0.25rem;" id="dash-expense-sub">Daily expenditures</div>
+            </div>
+
+            <div class="card summary-card" style="border-left: 4px solid #f59e0b;">
+              <div class="summary-header">
+                <span class="summary-title">Vehicle Expenses</span>
+                <div class="summary-icon" style="background: rgba(245, 158, 11, 0.15); color: #d97706;"><i data-lucide="car"></i></div>
+              </div>
+              <div class="summary-value" id="summary-vehicle" style="color: #d97706;">₹0.00</div>
+              <div style="font-size: 0.75rem; color: #d97706; font-weight: 600; margin-top: 0.25rem;" id="dash-vehicle-sub">Car & Bike costs</div>
+            </div>
+
+            <div class="card summary-card card-savings">
+              <div class="summary-header">
+                <span class="summary-title" id="lbl-dash-savings">Period Net Savings</span>
+                <div class="summary-icon"><i data-lucide="piggy-bank"></i></div>
+              </div>
+              <div class="summary-value" id="summary-savings">₹0.00</div>
+              <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;" id="dash-savings-sub">Income minus expenses</div>
+            </div>
+          </div>
+
+          <!-- Split Columns: Charts, Calendar, and Quick Logs -->
+          <div class="dashboard-split" style="margin-top: 2rem;">
+            
+            <!-- Left Side Dashboard Content: Dashboard breakdown charts -->
+            <div class="dashboard-column">
+              <div class="card section-card">
+                <div class="section-header">
+                  <h3 class="section-title"><i data-lucide="pie-chart"></i> Month Expense Breakdown</h3>
+                </div>
+                <div class="chart-container">
+                  <canvas id="overview-pie-chart"></canvas>
+                </div>
+              </div>
+
+              <!-- Recent Activity List -->
+              <div class="card section-card">
+                <div class="section-header">
+                  <h3 class="section-title"><i data-lucide="clock"></i> Recent Transactions</h3>
+                  <button class="btn btn-text" id="view-all-tx-link">View All</button>
+                </div>
+                <div class="transaction-list" id="recent-transactions-container">
+                  <!-- Load dynamically via javascript -->
+                  <div style="text-align: center; color: var(--text-tertiary); padding: 2rem;">No recent records.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side Dashboard Content: Interactive Calendar widget -->
+            <div class="dashboard-column">
+              <div class="card calendar-widget">
+                <div class="calendar-header">
+                  <span class="calendar-month-year" id="cal-month-year-label">June 2026</span>
+                  <div class="calendar-nav">
+                    <button class="btn btn-secondary btn-icon" id="cal-prev-btn"><i data-lucide="chevron-left"></i></button>
+                    <button class="btn btn-secondary btn-icon" id="cal-next-btn"><i data-lucide="chevron-right"></i></button>
+                  </div>
+                </div>
+
+                <div class="calendar-grid" id="calendar-days-grid">
+                  <!-- Mon-Sun headers -->
+                  <div class="calendar-day-header">M</div>
+                  <div class="calendar-day-header">T</div>
+                  <div class="calendar-day-header">W</div>
+                  <div class="calendar-day-header">T</div>
+                  <div class="calendar-day-header">F</div>
+                  <div class="calendar-day-header">S</div>
+                  <div class="calendar-day-header">S</div>
+                  <!-- Dates filled dynamically -->
+                </div>
+
+                <div class="day-details-panel">
+                  <div class="day-details-header">
+                    <span id="cal-selected-date-label">Selected Date</span>
+                  </div>
+                  <div class="day-summary-row">
+                    <div class="day-summary-item">
+                      <span style="color: var(--income);">Income</span>
+                      <span class="day-summary-val" id="cal-day-income">₹0.00</span>
+                    </div>
+                    <div class="day-summary-item">
+                      <span style="color: var(--expense);">Expense</span>
+                      <span class="day-summary-val" id="cal-day-expense">₹0.00</span>
+                    </div>
+                    <div class="day-summary-item">
+                      <span style="color: var(--balance);">Net</span>
+                      <span class="day-summary-val" id="cal-day-balance">₹0.00</span>
+                    </div>
+                  </div>
+                  <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;" id="cal-day-notes">
+                    Click a date in the calendar to view summaries.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW SECTION 2: TRANSACTIONS LIST           -->
+        <!-- ========================================== -->
+        <section id="view-transactions" class="view-pane fade-in" style="display: none;">
+          
+          <!-- Filters & Searches Toolbar -->
+          <div class="filters-bar">
+            <div class="search-box">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="tx-search-input" class="form-input" placeholder="Search by amount, category or note...">
+            </div>
+
+            <div class="filter-controls">
+              <select id="tx-filter-range" class="form-select" style="width: auto;">
+                <option value="all">All Dates</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="week">This Week</option>
+                <option value="month" selected>This Month</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
+
+              <div id="tx-custom-date-inputs" class="form-row" style="display: none; align-items: center; gap: 0.5rem;">
+                <input type="date" id="tx-filter-start" class="form-input" style="padding: 0.5rem; font-size: 0.85rem;">
+                <span style="font-size: 0.8rem; font-weight: 600;">to</span>
+                <input type="date" id="tx-filter-end" class="form-input" style="padding: 0.5rem; font-size: 0.85rem;">
+              </div>
+
+              <select id="tx-filter-type" class="form-select" style="width: auto;">
+                <option value="all">All Types</option>
+                <option value="income">Income Only</option>
+                <option value="expense">Expense Only</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Master Transactions Content Container -->
+          <div class="card section-card">
+            <div class="section-header">
+              <h3 class="section-title"><i data-lucide="list"></i> Ledger Entries</h3>
+              <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);" id="tx-count-label">Showing 0 transactions</div>
+            </div>
+            <div class="transaction-list" id="master-transactions-container">
+              <!-- Render dynamically -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW SECTION 3: VEHICLE EXPENSES           -->
+        <!-- ========================================== -->
+        <section id="view-vehicles" class="view-pane fade-in" style="display: none;">
+          
+          <!-- Actions & Options strip -->
+          <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; justify-content: flex-end;">
+            <button class="btn btn-primary" id="add-vehicle-expense-btn">
+              <i data-lucide="plus-circle"></i> Log Vehicle Bill
+            </button>
+          </div>
+
+          <div class="dashboard-split">
+            <!-- Left Side column: Vehicle list logs -->
+            <div class="dashboard-column">
+              <div class="card section-card">
+                <div class="section-header">
+                  <h3 class="section-title"><i data-lucide="receipt"></i> Vehicle Billing Logs</h3>
+                  <div class="tabs">
+                    <button class="tab-btn active" id="vh-tab-all" data-vh-filter="all">All</button>
+                    <button class="tab-btn" id="vh-tab-car" data-vh-filter="car"><i data-lucide="car" style="width: 14px; display: inline; vertical-align: middle;"></i> Car</button>
+                    <button class="tab-btn" id="vh-tab-bike" data-vh-filter="bike"><i data-lucide="bike" style="width: 14px; display: inline; vertical-align: middle;"></i> Bike</button>
+                  </div>
+                </div>
+                
+                <div class="transaction-list" id="vehicle-expenses-container">
+                  <!-- Render dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Right side column: Summaries & Breakdowns -->
+            <div class="dashboard-column">
+              <div class="card section-card">
+                <div class="section-header">
+                  <h3 class="section-title"><i data-lucide="bar-chart-2"></i> Vehicle Spending</h3>
+                </div>
+                
+                <div class="day-details-panel">
+                  <div class="day-details-header">
+                    <span>Car Summary</span>
+                  </div>
+                  <div style="font-size: 1.25rem; font-weight: 800; color: var(--balance);" id="vh-car-total-label">₹0.00</div>
+                </div>
+
+                <div class="day-details-panel" style="margin-top: 1rem;">
+                  <div class="day-details-header">
+                    <span>Bike Summary</span>
+                  </div>
+                  <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);" id="vh-bike-total-label">₹0.00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW SECTION 4: CUSTOM CATEGORIES          -->
+        <!-- ========================================== -->
+        <section id="view-custom-categories" class="view-pane fade-in" style="display: none;">
+          
+          <div class="dashboard-split">
+            <!-- Left Side: Create Custom Category -->
+            <div class="dashboard-column">
+              <div class="card section-card">
+                <div class="section-header">
+                  <h3 class="section-title"><i data-lucide="tag"></i> Create Custom Category</h3>
+                </div>
+                
+                <form id="custom-category-form">
+                  <div class="form-group">
+                    <label for="new-cat-name" class="form-label">Category Name</label>
+                    <input type="text" id="new-cat-name" class="form-input" placeholder="e.g. Office, Vacation, Emergency" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="new-cat-type" class="form-label">Category Type</label>
+                    <select id="new-cat-type" class="form-select" required>
+                      <option value="expense">Expense Category</option>
+                      <option value="income">Income Category</option>
+                      <option value="manual">Manual Category</option>
+                    </select>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    <i data-lucide="plus"></i> Add Category
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Right Side: Category List manager -->
+            <div class="dashboard-column">
+              <div class="card section-card">
+                <div class="section-header">
+                  <h3 class="section-title"><i data-lucide="sliders"></i> Manage Custom Categories</h3>
+                </div>
+                
+                <div class="cat-manager-grid" id="custom-categories-container">
+                  <!-- Populated via Javascript -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW SECTION 5: REPORTS & CHARTS           -->
+        <!-- ========================================== -->
+        <section id="view-reports" class="view-pane fade-in" style="display: none;">
+          
+          <!-- Advanced Date/Month/Year Filter Control Card -->
+          <div class="card section-card" style="margin-bottom: 1.5rem;">
+            <div class="section-header" style="flex-wrap: wrap; gap: 0.75rem;">
+              <h3 class="section-title"><i data-lucide="filter"></i> Filter Ledger & Download Report</h3>
+              <div class="filter-mode-tabs tabs" id="report-filter-mode-tabs">
+                <button type="button" class="tab-btn active" data-mode="month">By Month</button>
+                <button type="button" class="tab-btn" data-mode="date">Specific Date</button>
+                <button type="button" class="tab-btn" data-mode="year">By Year</button>
+                <button type="button" class="tab-btn" data-mode="range">Date Range</button>
+                <button type="button" class="tab-btn" data-mode="all">All Time</button>
+              </div>
+            </div>
+
+            <div class="report-filters-bar" style="margin-top: 1rem;">
+              <!-- Container 1: Month & Year Selector -->
+              <div id="filter-ctrl-month" class="filter-controls-row" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div class="form-group" style="min-width: 170px; flex: 1;">
+                  <label class="form-label" for="rep-filter-month">Select Month</label>
+                  <select id="rep-filter-month" class="form-select">
+                    <option value="0">January</option>
+                    <option value="1">February</option>
+                    <option value="2">March</option>
+                    <option value="3">April</option>
+                    <option value="4">May</option>
+                    <option value="5">June</option>
+                    <option value="6">July</option>
+                    <option value="7">August</option>
+                    <option value="8">September</option>
+                    <option value="9">October</option>
+                    <option value="10">November</option>
+                    <option value="11">December</option>
+                  </select>
+                </div>
+                <div class="form-group" style="min-width: 140px; flex: 1;">
+                  <label class="form-label" for="rep-filter-year">Select Year</label>
+                  <select id="rep-filter-year" class="form-select">
+                    <!-- Injected dynamically in dashboard.js -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Container 2: Specific Date Selector -->
+              <div id="filter-ctrl-date" class="filter-controls-row" style="display: none; gap: 1rem; flex-wrap: wrap;">
+                <div class="form-group" style="min-width: 220px; flex: 1;">
+                  <label class="form-label" for="rep-filter-date">Select Date</label>
+                  <input type="date" id="rep-filter-date" class="form-input">
+                </div>
+              </div>
+
+              <!-- Container 3: Single Year Selector -->
+              <div id="filter-ctrl-year" class="filter-controls-row" style="display: none; gap: 1rem; flex-wrap: wrap;">
+                <div class="form-group" style="min-width: 180px; flex: 1;">
+                  <label class="form-label" for="rep-filter-only-year">Select Year</label>
+                  <select id="rep-filter-only-year" class="form-select">
+                    <!-- Injected dynamically in dashboard.js -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Container 4: Custom Date Range -->
+              <div id="filter-ctrl-range" class="filter-controls-row" style="display: none; gap: 1rem; flex-wrap: wrap;">
+                <div class="form-group" style="min-width: 160px; flex: 1;">
+                  <label class="form-label" for="rep-filter-start-date">From Date</label>
+                  <input type="date" id="rep-filter-start-date" class="form-input">
+                </div>
+                <div class="form-group" style="min-width: 160px; flex: 1;">
+                  <label class="form-label" for="rep-filter-end-date">To Date</label>
+                  <input type="date" id="rep-filter-end-date" class="form-input">
+                </div>
+              </div>
+
+              <!-- Quick Presets and Download Actions Row -->
+              <div class="report-actions-row" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <div class="quick-preset-chips" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                  <button type="button" class="btn btn-sm btn-secondary" id="preset-btn-today"><i data-lucide="calendar"></i> Today</button>
+                  <button type="button" class="btn btn-sm btn-secondary" id="preset-btn-this-month"><i data-lucide="calendar-days"></i> This Month</button>
+                  <button type="button" class="btn btn-sm btn-secondary" id="preset-btn-last-month"><i data-lucide="history"></i> Last Month</button>
+                  <button type="button" class="btn btn-sm btn-secondary" id="preset-btn-this-year"><i data-lucide="calendar-range"></i> This Year</button>
+                </div>
+
+                <div class="export-buttons-group" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-success" id="export-excel-btn" style="background-color: #059669; color: white; border-color: #059669;">
+                    <i data-lucide="file-spreadsheet"></i> Download Excel
+                  </button>
+                  <button type="button" class="btn btn-primary" id="export-pdf-btn">
+                    <i data-lucide="file-text"></i> Download PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Report summary cards for selected period -->
+          <div class="card section-card">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <h3 class="section-title" id="report-title-label"><i data-lucide="book-open"></i> Ledger Summary</h3>
+              <div class="badge-filter-active" id="report-period-label" style="font-weight: 700; background: var(--bg-tertiary); padding: 0.35rem 0.85rem; border-radius: 50px; border: 1px solid var(--border-color); color: var(--primary);">This Month</div>
+            </div>
+
+            <!-- Report stats row -->
+            <div class="day-details-panel">
+              <div class="day-summary-row" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                <div class="day-summary-item">
+                  <span style="color: var(--income); font-weight: 600;">Total Income</span>
+                  <span class="day-summary-val" style="font-size: 1.4rem;" id="rep-income-val">₹0.00</span>
+                </div>
+                <div class="day-summary-item">
+                  <span style="color: var(--expense); font-weight: 600;">General Expense</span>
+                  <span class="day-summary-val" style="font-size: 1.4rem;" id="rep-expense-val">₹0.00</span>
+                </div>
+                <div class="day-summary-item">
+                  <span style="color: #f59e0b; font-weight: 600;">Vehicle Expense</span>
+                  <span class="day-summary-val" style="font-size: 1.4rem;" id="rep-vehicle-val">₹0.00</span>
+                </div>
+                <div class="day-summary-item">
+                  <span style="color: var(--savings); font-weight: 600;">Net Balance</span>
+                  <span class="day-summary-val" style="font-size: 1.4rem;" id="rep-savings-val">₹0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multi-Charts rendering section -->
+          <div class="charts-grid" style="margin-top: 1.5rem;">
+            <div class="card section-card">
+              <div class="section-header">
+                <h3 class="section-title"><i data-lucide="pie-chart"></i> Expenses Breakdown</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="reports-pie-chart"></canvas>
+              </div>
+            </div>
+
+            <div class="card section-card">
+              <div class="section-header">
+                <h3 class="section-title"><i data-lucide="bar-chart"></i> Income vs Expense</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="reports-bar-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filtered Ledger Transaction Records Table -->
+          <div class="card section-card" style="margin-top: 1.5rem;">
+            <div class="section-header" style="justify-content: space-between; align-items: center;">
+              <h3 class="section-title"><i data-lucide="receipt"></i> Filtered Ledger (<span id="rep-record-count">0</span> records)</h3>
+            </div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+              <table class="data-table" id="report-records-table">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Note</th>
+                    <th style="text-align: right;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="report-records-body">
+                  <tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading ledger records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL POPUPS DIALOGS                        -->
+  <!-- ========================================== -->
+
+  <!-- Modal 1: Add / Edit Income -->
+  <div class="modal-backdrop" id="income-modal">
+    <div class="modal scale-up">
+      <div class="modal-header">
+        <h3 class="modal-title" id="income-modal-title"><i data-lucide="plus-circle" style="color: var(--income);"></i> Add Income</h3>
+        <button class="modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="income-form">
+        <input type="hidden" id="income-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="income-amount" class="form-label">Amount (₹)</label>
+            <input type="number" id="income-amount" class="form-input" placeholder="0.00" step="0.01" required min="0.01">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <div class="chips-container" id="income-chips-wrapper">
+              <div class="chip active" data-val="Salary">Salary</div>
+              <div class="chip" data-val="Bonus">Bonus</div>
+              <div class="chip" data-val="Freelance">Freelance</div>
+              <div class="chip" data-val="Business">Business</div>
+              <div class="chip" data-val="Other">Other</div>
+              <!-- Custom categories injected here -->
+            </div>
+            <input type="text" id="income-category" class="form-input" style="margin-top: 0.5rem;" placeholder="Or type category manually..." value="Salary" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="income-date" class="form-label">Date</label>
+              <input type="date" id="income-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="income-time" class="form-label">Time</label>
+              <input type="time" id="income-time" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="income-note" class="form-label">Notes</label>
+            <textarea id="income-note" class="form-textarea" rows="2" placeholder="Describe this income source..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
+          <button type="submit" class="btn btn-income" id="income-save-btn">Save Income</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Add / Edit Expense -->
+  <div class="modal-backdrop" id="expense-modal">
+    <div class="modal scale-up">
+      <div class="modal-header">
+        <h3 class="modal-title" id="expense-modal-title"><i data-lucide="minus-circle" style="color: var(--expense);"></i> Add Expense</h3>
+        <button class="modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="expense-form">
+        <input type="hidden" id="expense-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="expense-amount" class="form-label">Amount (₹)</label>
+            <input type="number" id="expense-amount" class="form-input" placeholder="0.00" step="0.01" required min="0.01">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <div class="chips-container" id="expense-chips-wrapper">
+              <div class="chip active" data-val="Food">Food</div>
+              <div class="chip" data-val="Travel">Travel</div>
+              <div class="chip" data-val="Shopping">Shopping</div>
+              <div class="chip" data-val="Medical">Medical</div>
+              <div class="chip" data-val="Personal">Personal</div>
+              <div class="chip" data-val="Utility Bills">Utility Bills</div>
+              <div class="chip" data-val="Other">Other</div>
+              <!-- Custom categories injected here -->
+            </div>
+            <input type="text" id="expense-category" class="form-input" style="margin-top: 0.5rem;" placeholder="Or type category manually..." value="Food" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="expense-date" class="form-label">Date</label>
+              <input type="date" id="expense-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="expense-time" class="form-label">Time</label>
+              <input type="time" id="expense-time" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="expense-note" class="form-label">Notes</label>
+            <textarea id="expense-note" class="form-textarea" rows="2" placeholder="Describe this spending..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
+          <button type="submit" class="btn btn-danger" id="expense-save-btn">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Add / Edit Vehicle Expense -->
+  <div class="modal-backdrop" id="vehicle-modal">
+    <div class="modal scale-up">
+      <div class="modal-header">
+        <h3 class="modal-title" id="vehicle-modal-title"><i data-lucide="car" style="color: var(--balance);"></i> Log Vehicle Expense</h3>
+        <button class="modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="vehicle-form">
+        <input type="hidden" id="vehicle-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="vehicle-type" class="form-label">Vehicle Type</label>
+            <select id="vehicle-type" class="form-select" required>
+              <option value="car">Car</option>
+              <option value="bike">Bike</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="vehicle-amount" class="form-label">Amount (₹)</label>
+            <input type="number" id="vehicle-amount" class="form-input" placeholder="0.00" step="0.01" required min="0.01">
+          </div>
+
+          <div class="form-group">
+            <label for="vehicle-category" class="form-label">Expense Category</label>
+            <select id="vehicle-category" class="form-select" required>
+              <!-- Populated dynamically based on Vehicle type choice -->
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="vehicle-date" class="form-label">Date</label>
+              <input type="date" id="vehicle-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="vehicle-time" class="form-label">Time</label>
+              <input type="time" id="vehicle-time" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="vehicle-note" class="form-label">Notes</label>
+            <textarea id="vehicle-note" class="form-textarea" rows="2" placeholder="Add invoice details or comments..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="vehicle-save-btn">Log Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: View Transaction Details -->
+  <div class="modal-backdrop" id="view-details-modal">
+    <div class="modal scale-up" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="receipt"></i> Transaction Details</h3>
+        <button class="modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 2rem 1.5rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <div id="view-details-badge" style="display: inline-block; width: 64px; height: 64px; border-radius: 50%; font-size: 2rem; line-height: 64px; text-align: center; margin-bottom: 1rem;"></div>
+          <div id="view-details-amount" style="font-size: 2rem; font-weight: 800; letter-spacing: -0.03em;">₹0.00</div>
+          <div id="view-details-type" style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; margin-top: 0.25rem;">Type</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+            <span style="color: var(--text-tertiary); font-weight: 600;">Category</span>
+            <span style="font-weight: 700;" id="view-details-category">CategoryName</span>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+            <span style="color: var(--text-tertiary); font-weight: 600;">Date & Time</span>
+            <span style="font-weight: 700;" id="view-details-datetime">01-01-2026 12:00</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem;">
+            <span style="color: var(--text-tertiary); font-weight: 600;">Notes</span>
+            <p style="font-weight: 500; background-color: var(--bg-tertiary); padding: 0.75rem; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); white-space: pre-wrap;" id="view-details-notes">No notes entered.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close-btn" style="width: 100%;">Close Details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Delete Confirmation Popup -->
+  <div class="modal-backdrop" id="delete-confirm-modal">
+    <div class="modal scale-up" style="max-width: 400px;">
+      <div class="modal-header" style="border: none;">
+        <h3 class="modal-title"><i data-lucide="alert-triangle" style="color: var(--expense);"></i> Delete Record?</h3>
+        <button class="modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding: 1rem 1.5rem 2rem;">
+        <p style="color: var(--text-secondary); font-weight: 500;">
+          Are you sure you want to permanently remove this transaction from your records? This action cannot be undone.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close-btn">Cancel</button>
+        <button class="btn btn-danger" id="delete-confirm-btn">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 6: Real-time Account Deactivation Lockout Overlay -->
+  <div class="modal-backdrop deactivated-backdrop" id="deactivated-lockout-modal" style="display: none;">
+    <div class="modal deactivated-modal-card">
+      <div class="deactivated-icon-wrapper">
+        <i data-lucide="shield-alert"></i>
+      </div>
+      <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.65rem;">Account Deactivated</h2>
+      <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; margin-bottom: 1.25rem;">
+        Your user account has been deactivated by the system administrator. While deactivated, access to your financial transactions, data entry, reports, and settings is suspended.
+      </p>
+      <div style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid #ef4444; border-radius: 8px; padding: 0.85rem 1rem; text-align: left; margin-bottom: 1.5rem;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 0.4rem;">
+          <i data-lucide="lock" style="width: 15px; height: 15px;"></i> All Dashboard Features Locked
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+          Please contact the administrator if you need your account reactivated.
+        </div>
+      </div>
+      <button type="button" class="btn btn-danger" id="deactivated-logout-btn" style="width: 100%; padding: 0.85rem 1.25rem; font-size: 0.95rem; font-weight: 700; justify-content: center;">
+        <i data-lucide="log-out"></i> Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- Dashboard Controller Script -->
+  <script src="firebase.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="pwa-install.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration:', err));
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRISHTECH - Master Admin Registration</title>
+  <meta name="description" content="KRISHTECH dedicated one-time master administrator registration portal.">
+  <meta name="robots" content="noindex, nofollow">
+  
+  <link rel="icon" type="image/svg+xml" href="krish-icon.svg">
+  <link rel="apple-touch-icon" href="krish-icon.svg">
+  <meta name="theme-color" content="#0f172a">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase Compat Library CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body data-theme="dark" style="margin: 0; background: #0f172a;">
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <div class="admin-auth-wrapper">
+    <div class="admin-auth-container" style="max-width: 460px;">
+      
+      <!-- Branding & Portal Emblem -->
+      <div style="text-align: center; margin-bottom: 1.75rem;">
+        <img src="krish-logo.svg" alt="KRISHTECH" style="max-height: 52px; margin: 0 auto 1.25rem; display: block; filter: drop-shadow(0 4px 14px rgba(79, 70, 229, 0.45));">
+        <div class="admin-badge-pill">
+          <i data-lucide="shield-check" style="width: 15px; height: 15px; color: #10b981;"></i>
+          <span>Master Admin Setup</span>
+        </div>
+      </div>
+
+      <!-- Main Registration Card -->
+      <div class="admin-auth-card">
+        <h2 class="admin-auth-title">Register Master Admin</h2>
+        <p class="admin-auth-subtitle">One-time initial setup to configure your administrative account</p>
+
+        <!-- Existing Admin Alert Banner (hidden by default) -->
+        <div id="admin-exists-banner" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: #fbbf24; align-items: flex-start; gap: 0.6rem;">
+          <i data-lucide="alert-triangle" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"></i>
+          <div>
+            <strong>Notice:</strong> An administrator account already exists. You can still register an additional admin or proceed to login.
+          </div>
+        </div>
+
+        <form id="admin-register-form" novalidate>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="admin-name" class="admin-form-label">Full Name</label>
+            <input type="text" id="admin-name" class="admin-form-input" placeholder="e.g. Krish Administrator" required autocomplete="name">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="admin-email" class="admin-form-label">Admin Email Address</label>
+            <input type="email" id="admin-email" class="admin-form-input" placeholder="admin@krishtech.com" required autocomplete="email">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="admin-password" class="admin-form-label">Create Password</label>
+            <input type="password" id="admin-password" class="admin-form-input" placeholder="Minimum 6 characters" required minlength="6" autocomplete="new-password">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="admin-confirm-password" class="admin-form-label">Confirm Password</label>
+            <input type="password" id="admin-confirm-password" class="admin-form-input" placeholder="Re-enter password" required minlength="6" autocomplete="new-password">
+          </div>
+
+          <button type="submit" id="admin-register-btn" class="btn-admin-submit" style="background: linear-gradient(135deg, #4f46e5, #4338ca);">
+            <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i>
+            <span>Register &amp; Launch Admin Portal</span>
+          </button>
+        </form>
+
+        <div style="margin-top: 1.25rem; text-align: center;">
+          <a href="admin-login.html" style="font-size: 0.82rem; color: #818cf8; text-decoration: none; font-weight: 600;">
+            Already have an admin account? Sign In
+          </a>
+        </div>
+
+        <!-- Compliance & Security Notice -->
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.76rem; color: #64748b; line-height: 1.5; text-align: center;">
+          <i data-lucide="lock" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle; margin-right: 4px; color: #6366f1;"></i>
+          Master Administrator possesses full privileges to manage users and monitor attendance.
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 1.75rem; font-size: 0.8rem; color: #64748b;">
+        &copy; 2026 KRISHTECH Financial Systems
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Shared Services and Logic Scripts -->
+  <script src="firebase.js"></script>
+  <script src="admin-register.js"></script>
+</body>
+</html>

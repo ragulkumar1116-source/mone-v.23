@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="iconAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="iconShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="192" height="192" rx="42" fill="url(#iconGrad)"/>
+  
+  <!-- Wallet Symbol -->
+  <g transform="translate(38, 38)" filter="url(#iconShadow)">
+    <rect x="0" y="0" width="116" height="116" rx="28" fill="#ffffff" fill-opacity="0.12"/>
+    <path d="M22 36C22 28.268 28.268 22 36 22H80C87.732 22 94 28.268 94 36V80C94 87.732 87.732 94 80 94H36C28.268 94 22 87.732 22 80V36Z" fill="none" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M22 46H94" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+    <path d="M66 56H94V74H66C61.0294 74 57 69.9706 57 65C57 60.0294 61.0294 56 66 56Z" fill="#ffffff"/>
+    <circle cx="76" cy="65" r="4" fill="#4f46e5"/>
+    <path d="M36 74L48 62L58 70L74 54" fill="none" stroke="url(#iconAccent)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
