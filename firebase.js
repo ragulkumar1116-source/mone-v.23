@@ -1003,36 +1003,47 @@ const completeRegistrationWithOTP = async (name, phone, email, password, otp) =>
   return user;
 };
 
-// Brevo Configuration Management
+// Email & Brevo Configuration Management
 const isBrevoConfigured = () => {
+  if (typeof window !== "undefined" && window.MMP_Email && window.MMP_Email.isConfigured) {
+    return window.MMP_Email.isConfigured();
+  }
   if (typeof window !== "undefined" && window.MMP_Brevo && window.MMP_Brevo.isConfigured) {
     return window.MMP_Brevo.isConfigured();
   }
   return false;
 };
 
-const getBrevoConfig = () => {
+const getEmailConfig = () => {
+  if (window.MMP_Email) return window.MMP_Email.getConfig();
   if (window.MMP_Brevo) return window.MMP_Brevo.getConfig();
   return null;
 };
+const getBrevoConfig = getEmailConfig;
 
-const saveBrevoConfig = async (config) => {
-  if (window.MMP_Brevo) {
-    window.MMP_Brevo.setConfig(config);
+const saveEmailConfig = async (config) => {
+  if (window.MMP_Email) {
+    window.MMP_Email.setConfig(config);
   }
   if (db) {
+    await db.ref("system_settings/email").set(config);
     await db.ref("system_settings/brevo").set(config);
   }
-  recordActivity("Brevo Config Updated", "Administrator modified email & OTP settings");
+  recordActivity("Email Config Updated", "Administrator updated EmailJS configuration");
   return config;
 };
+const saveBrevoConfig = saveEmailConfig;
 
-const testBrevoConnection = async (targetEmail) => {
+const testEmailConnection = async (targetEmail) => {
+  if (window.MMP_Email) {
+    return await window.MMP_Email.testConnection(targetEmail);
+  }
   if (window.MMP_Brevo) {
     return await window.MMP_Brevo.testConnection(targetEmail);
   }
-  throw new Error("Brevo service not available.");
+  throw new Error("Email service not available.");
 };
+const testBrevoConnection = testEmailConnection;
 
 const onAuthChanged = (callback) => {
   auth.onAuthStateChanged(async (user) => {
@@ -1679,5 +1690,8 @@ window.MMP_Firebase = {
   isBrevoConfigured,
   getBrevoConfig,
   saveBrevoConfig,
-  testBrevoConnection
+  testBrevoConnection,
+  getEmailConfig,
+  saveEmailConfig,
+  testEmailConnection
 };

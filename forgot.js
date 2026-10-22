@@ -147,13 +147,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const hasBrevo = MMP_Firebase.isBrevoConfigured && MMP_Firebase.isBrevoConfigured();
 
       if (!hasBrevo) {
-        // If Brevo is not yet configured, proceed directly to new password step without error
-        showToast("Brevo email service not configured. Proceeding to password reset.", "info");
+        // If email service is not yet configured, proceed directly to new password step without error
+        showToast("Email service not configured yet. Proceeding to password reset.", "info");
         goToStep(3);
         return;
       }
 
-      step1Btn.innerHTML = `<span class="spinner"></span> <span>Sending OTP via Brevo...</span>`;
+      step1Btn.innerHTML = `<span class="spinner"></span> <span>Sending OTP code...</span>`;
       const result = await MMP_Firebase.requestPasswordResetOTP(email);
 
       showToast(result.message || "OTP code sent to your email!", "success");

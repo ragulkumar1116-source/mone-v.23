@@ -1,5 +1,5 @@
 // KRISHTECH Service Worker
-const CACHE_NAME = "krishtech-cache-v5";
+const CACHE_NAME = "krishtech-cache-v10";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",

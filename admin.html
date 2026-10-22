@@ -356,48 +356,55 @@
             </form>
           </div>
 
-          <!-- Brevo Email & OTP Configuration Card -->
+          <!-- EmailJS & OTP Configuration Card -->
           <div class="card section-card" style="max-width: 650px; margin-top: 1.5rem;">
             <div class="section-header">
-              <h3 class="section-title"><i data-lucide="mail"></i> Brevo Email &amp; OTP Configuration</h3>
+              <h3 class="section-title"><i data-lucide="mail"></i> EmailJS Configuration (Service ID: service_7z8m9rp)</h3>
             </div>
-            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1.25rem;">
-              Configure Brevo (formerly Sendinblue) Transactional API to deliver real-time OTP verification codes, password reset requests, and security alerts.
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+              Configure EmailJS to deliver real-time OTP verification codes, password resets, and security notifications directly from your website.
             </p>
 
-            <form id="admin-brevo-form">
+            <!-- Gmail Scope 412 Info Alert -->
+            <div style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1.25rem; font-size: 0.8rem; line-height: 1.5; color: var(--text-secondary);">
+              <strong style="color: var(--text-primary);"><i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Gmail Scope Notice:</strong><br>
+              If you encounter a <code>412</code> authorization error, reconnect your Gmail service in the EmailJS dashboard and grant all required Google permissions.
+            </div>
+
+            <form id="admin-emailjs-form">
               <div class="form-group" style="margin-bottom: 1.25rem;">
-                <label class="form-label" for="setting-brevo-key">Brevo API Key (v3)</label>
+                <label class="form-label" for="setting-emailjs-service">EmailJS Service ID</label>
+                <input type="text" id="setting-emailjs-service" class="form-input" value="service_7z8m9rp" placeholder="service_7z8m9rp" required>
+                <small style="color: var(--text-tertiary); font-size: 0.75rem;">Your configured EmailJS Service ID.</small>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="setting-emailjs-public-key">EmailJS Public Key (User ID)</label>
                 <div class="password-field-wrapper">
-                  <input type="password" id="setting-brevo-key" class="form-input" placeholder="xkeysib-..." autocomplete="off">
-                  <button type="button" class="password-toggle-btn" data-target="setting-brevo-key" aria-label="Toggle Brevo key visibility">
+                  <input type="password" id="setting-emailjs-public-key" class="form-input" value="0OBbBDlcECVbIHacM" placeholder="Enter your EmailJS Public Key" autocomplete="off">
+                  <button type="button" class="password-toggle-btn" data-target="setting-emailjs-public-key" aria-label="Toggle Public Key visibility">
                     <i data-lucide="eye"></i>
                   </button>
                 </div>
                 <small style="color: var(--text-tertiary); font-size: 0.75rem;">
-                  Found in your Brevo Dashboard &rarr; SMTP &amp; API &rarr; API Keys.
-                </small>
-              </div>
-
-              <div class="form-group" style="margin-bottom: 1.25rem;">
-                <label class="form-label" for="setting-brevo-sender-email">Verified Sender Email</label>
-                <input type="email" id="setting-brevo-sender-email" class="form-input" placeholder="e.g. aitsecurity6@gmail.com" required>
-                <small style="color: var(--text-tertiary); font-size: 0.75rem;">
-                  Must match a verified sender email in your Brevo account.
+                  Found in EmailJS Dashboard &rarr; Account &rarr; General &rarr; Public Key.
                 </small>
               </div>
 
               <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label class="form-label" for="setting-brevo-sender-name">Sender Display Name</label>
-                <input type="text" id="setting-brevo-sender-name" class="form-input" placeholder="KRISHTECH Security" required>
+                <label class="form-label" for="setting-emailjs-template-id">EmailJS Template ID</label>
+                <input type="text" id="setting-emailjs-template-id" class="form-input" value="template_fpgn76o" placeholder="template_fpgn76o" required>
+                <small style="color: var(--text-tertiary); font-size: 0.75rem;">
+                  Configured EmailJS Template ID. Template variables supported: <code>{{to_email}}</code>, <code>{{otp}}</code>, <code>{{message}}</code>.
+                </small>
               </div>
 
               <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                <button type="submit" id="save-brevo-btn" class="btn btn-primary">
-                  <i data-lucide="save"></i> Save Brevo Configuration
+                <button type="submit" id="save-emailjs-btn" class="btn btn-primary">
+                  <i data-lucide="save"></i> Save EmailJS Settings
                 </button>
-                <button type="button" id="test-brevo-btn" class="btn btn-secondary">
-                  <i data-lucide="send"></i> Send Test Verification Email
+                <button type="button" id="test-emailjs-btn" class="btn btn-secondary">
+                  <i data-lucide="send"></i> Send Test Email
                 </button>
               </div>
             </form>
@@ -531,6 +538,8 @@
     </div>
   </div>
 
+  <!-- EmailJS SDK Core -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <!-- Shared Services and Logic Scripts -->
   <script src="email-service.js"></script>
   <script src="firebase.js"></script>

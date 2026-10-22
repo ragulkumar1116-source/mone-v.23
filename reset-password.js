@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (!MMP_Firebase.isBrevoConfigured()) {
-        showToast("Brevo email service is not configured yet in Admin Settings.", "info");
+        showToast("Email service is not configured yet in Admin Settings.", "info");
         return;
       }
 

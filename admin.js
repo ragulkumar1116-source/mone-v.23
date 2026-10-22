@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
       updateActivitiesUI();
     });
 
-    // 4. System Settings & Brevo Configuration
+    // 4. System Settings & EmailJS Configuration
     MMP_Firebase.listenToSystemSettings((settings) => {
       const ann = document.getElementById("setting-announcement");
       const stat = document.getElementById("setting-default-status");
@@ -68,15 +68,15 @@ document.addEventListener("DOMContentLoaded", () => {
       if (stat && settings.defaultUserStatus !== undefined) stat.value = settings.defaultUserStatus;
       if (reg && settings.allowRegistration !== undefined) reg.checked = settings.allowRegistration;
 
-      // Populate Brevo Email settings
-      const brevoKey = document.getElementById("setting-brevo-key");
-      const brevoSenderEmail = document.getElementById("setting-brevo-sender-email");
-      const brevoSenderName = document.getElementById("setting-brevo-sender-name");
-      const brevoCfg = (settings && settings.brevo) || (MMP_Firebase.getBrevoConfig && MMP_Firebase.getBrevoConfig()) || {};
+      // Populate EmailJS & Email settings
+      const emailjsService = document.getElementById("setting-emailjs-service");
+      const emailjsPubKey = document.getElementById("setting-emailjs-public-key");
+      const emailjsTplId = document.getElementById("setting-emailjs-template-id");
+      const emailCfg = (settings && (settings.email || settings.brevo)) || (MMP_Firebase.getEmailConfig && MMP_Firebase.getEmailConfig()) || {};
 
-      if (brevoKey && brevoCfg.apiKey !== undefined) brevoKey.value = brevoCfg.apiKey;
-      if (brevoSenderEmail && brevoCfg.senderEmail !== undefined) brevoSenderEmail.value = brevoCfg.senderEmail;
-      if (brevoSenderName && brevoCfg.senderName !== undefined) brevoSenderName.value = brevoCfg.senderName;
+      if (emailjsService) emailjsService.value = emailCfg.serviceId || "service_7z8m9rp";
+      if (emailjsPubKey) emailjsPubKey.value = emailCfg.publicKey || "0OBbBDlcECVbIHacM";
+      if (emailjsTplId) emailjsTplId.value = emailCfg.templateId || "template_fpgn76o";
     });
   }
 
@@ -711,85 +711,97 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Brevo Settings Form Save & Test
-  const brevoForm = document.getElementById("admin-brevo-form");
-  const saveBrevoBtn = document.getElementById("save-brevo-btn");
-  const testBrevoBtn = document.getElementById("test-brevo-btn");
+  // EmailJS Settings Form Save & Test
+  const emailjsForm = document.getElementById("admin-emailjs-form") || document.getElementById("admin-brevo-form");
+  const saveEmailjsBtn = document.getElementById("save-emailjs-btn") || document.getElementById("save-brevo-btn");
+  const testEmailjsBtn = document.getElementById("test-emailjs-btn") || document.getElementById("test-brevo-btn");
 
-  if (brevoForm) {
-    brevoForm.addEventListener("submit", async (e) => {
+  if (emailjsForm) {
+    emailjsForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const apiKey = (document.getElementById("setting-brevo-key").value || "").trim();
-      const senderEmail = (document.getElementById("setting-brevo-sender-email").value || "").trim();
-      const senderName = (document.getElementById("setting-brevo-sender-name").value || "").trim();
+      const serviceId = (document.getElementById("setting-emailjs-service")?.value || "service_7z8m9rp").trim();
+      const publicKey = (document.getElementById("setting-emailjs-public-key")?.value || "").trim();
+      const templateId = (document.getElementById("setting-emailjs-template-id")?.value || "").trim();
 
-      if (!senderEmail) {
-        showToast("Please enter a verified sender email.", "error");
+      if (!publicKey) {
+        showToast("Please enter your EmailJS Public Key.", "error");
+        document.getElementById("setting-emailjs-public-key")?.focus();
         return;
       }
 
-      const origHTML = saveBrevoBtn.innerHTML;
-      saveBrevoBtn.disabled = true;
-      saveBrevoBtn.innerHTML = `<span class="spinner"></span> <span>Saving...</span>`;
+      if (!templateId) {
+        showToast("Please enter your EmailJS Template ID.", "error");
+        document.getElementById("setting-emailjs-template-id")?.focus();
+        return;
+      }
+
+      const origHTML = saveEmailjsBtn ? saveEmailjsBtn.innerHTML : "";
+      if (saveEmailjsBtn) {
+        saveEmailjsBtn.disabled = true;
+        saveEmailjsBtn.innerHTML = `<span class="spinner"></span> <span>Saving...</span>`;
+      }
 
       try {
-        await MMP_Firebase.saveBrevoConfig({
-          apiKey: apiKey,
-          senderEmail: senderEmail,
-          senderName: senderName || "KRISHTECH Security"
+        await MMP_Firebase.saveEmailConfig({
+          provider: "emailjs",
+          serviceId: serviceId || "service_7z8m9rp",
+          publicKey: publicKey,
+          templateId: templateId
         });
-        showToast("Brevo email configuration saved successfully!", "success");
+        showToast("EmailJS settings saved successfully and synced with Firebase!", "success");
       } catch (err) {
         console.error(err);
-        showToast(err.message || "Failed to save Brevo settings.", "error");
+        showToast(err.message || "Failed to save EmailJS settings.", "error");
       } finally {
-        saveBrevoBtn.disabled = false;
-        saveBrevoBtn.innerHTML = origHTML;
+        if (saveEmailjsBtn) {
+          saveEmailjsBtn.disabled = false;
+          saveEmailjsBtn.innerHTML = origHTML;
+        }
         lucide.createIcons();
       }
     });
   }
 
-  // Test Brevo Email
-  if (testBrevoBtn) {
-    testBrevoBtn.addEventListener("click", async () => {
-      const apiKey = (document.getElementById("setting-brevo-key").value || "").trim();
-      const senderEmail = (document.getElementById("setting-brevo-sender-email").value || "").trim();
-      const senderName = (document.getElementById("setting-brevo-sender-name").value || "").trim();
+  // Test EmailJS Delivery
+  if (testEmailjsBtn) {
+    testEmailjsBtn.addEventListener("click", async () => {
+      const serviceId = (document.getElementById("setting-emailjs-service")?.value || "service_7z8m9rp").trim();
+      const publicKey = (document.getElementById("setting-emailjs-public-key")?.value || "").trim();
+      const templateId = (document.getElementById("setting-emailjs-template-id")?.value || "").trim();
 
-      if (!apiKey) {
-        showToast("Please enter your Brevo API key before testing.", "error");
-        document.getElementById("setting-brevo-key").focus();
+      if (!publicKey) {
+        showToast("Please enter your EmailJS Public Key before testing.", "error");
+        document.getElementById("setting-emailjs-public-key")?.focus();
         return;
       }
 
-      if (!senderEmail) {
-        showToast("Please enter a sender email address.", "error");
+      if (!templateId) {
+        showToast("Please enter your EmailJS Template ID before testing.", "error");
+        document.getElementById("setting-emailjs-template-id")?.focus();
         return;
       }
 
-      // Save to memory first
-      if (window.MMP_Brevo) {
-        window.MMP_Brevo.setConfig({ apiKey, senderEmail, senderName });
+      if (window.MMP_Email) {
+        window.MMP_Email.setConfig({ serviceId, publicKey, templateId });
       }
 
-      const targetTestEmail = prompt("Enter the email address to receive the test verification email:", senderEmail);
+      const targetTestEmail = prompt("Enter an email address to receive the test verification code:", "aitsecurity6@gmail.com");
       if (!targetTestEmail) return;
 
-      const origHTML = testBrevoBtn.innerHTML;
-      testBrevoBtn.disabled = true;
-      testBrevoBtn.innerHTML = `<span class="spinner"></span> <span>Sending Test Email...</span>`;
+      const origHTML = testEmailjsBtn.innerHTML;
+      testEmailjsBtn.disabled = true;
+      testEmailjsBtn.innerHTML = `<span class="spinner"></span> <span>Sending via EmailJS...</span>`;
 
       try {
-        await MMP_Firebase.testBrevoConnection(targetTestEmail.trim());
-        showToast(`Test email sent successfully to ${targetTestEmail}!`, "success");
+        await MMP_Firebase.testEmailConnection(targetTestEmail.trim());
+        showToast(`Test email sent successfully to ${targetTestEmail}! Check your inbox.`, "success");
       } catch (err) {
         console.error(err);
-        showToast(err.message || "Failed to send test email. Check API key and sender.", "error");
+        showToast(err.message || "EmailJS delivery failed. Check Service/Template ID & Gmail auth.", "error");
       } finally {
-        testBrevoBtn.disabled = false;
-        testBrevoBtn.innerHTML = origHTML;
+        testEmailjsBtn.disabled = false;
+        testEmailjsBtn.innerHTML = origHTML;
         lucide.createIcons();
       }
     });

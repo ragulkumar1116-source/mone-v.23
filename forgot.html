@@ -66,7 +66,7 @@
         <!-- ========================================== -->
         <div id="step-1-section">
           <h2 class="auth-title">Reset Password</h2>
-          <p class="auth-subtitle">Enter your registered email to receive an OTP verification code via Brevo</p>
+          <p class="auth-subtitle">Enter your registered email to receive an OTP verification code</p>
           
           <form id="step-1-form" novalidate>
             <div class="form-group">
@@ -192,11 +192,13 @@
       </div>
       
       <div class="auth-footer">
-        <p>© 2026 KRISHTECH &bull; Money Manager Pro &bull; Secured with Brevo &amp; Firebase</p>
+        <p>© 2026 KRISHTECH &bull; Money Manager Pro &bull; Secured with EmailJS &amp; Firebase</p>
       </div>
     </div>
   </div>
 
+  <!-- EmailJS SDK Core -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <!-- Shared Services and Logic Scripts -->
   <script src="email-service.js"></script>
   <script src="firebase.js"></script>

@@ -59,7 +59,7 @@
           <div class="form-group">
             <label for="email" class="form-label">Email Address</label>
             <input type="email" id="email" class="form-input" placeholder="e.g. ragul@gmail.com" required autocomplete="email">
-            <small style="color: var(--text-tertiary); font-size: 0.75rem;">A 6-digit OTP will be sent via Brevo to verify your email</small>
+            <small style="color: var(--text-tertiary); font-size: 0.75rem;">A 6-digit OTP will be sent to verify your email</small>
           </div>
           
           <div class="form-group">
@@ -149,6 +149,8 @@
     </div>
   </div>
 
+  <!-- EmailJS SDK Core -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <!-- Shared Services and Logic Scripts -->
   <script src="email-service.js"></script>
   <script src="firebase.js"></script>
