@@ -2478,3 +2478,230 @@ body {
   color: var(--primary) !important;
   transform: scale(1.1);
 }
+
+/* ========================================== */
+/* EMAIL OTP & PASSWORD RESET WIZARD STYLES    */
+/* ========================================== */
+
+/* Step Wizard Progress Header */
+.step-wizard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
+
+.step-wizard::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: var(--border-color);
+  z-index: 1;
+  transform: translateY(-50%);
+}
+
+.step-wizard-progress {
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  height: 2px;
+  background: var(--primary);
+  z-index: 2;
+  transform: translateY(-50%);
+  transition: width var(--transition-normal);
+}
+
+.step-item {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  color: var(--text-tertiary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.step-item.active .step-circle {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 0 14px var(--primary-glow);
+}
+
+.step-item.completed .step-circle {
+  border-color: #10b981;
+  background: #10b981;
+  color: #ffffff;
+}
+
+.step-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color var(--transition-fast);
+}
+
+.step-item.active .step-label {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.step-item.completed .step-label {
+  color: #10b981;
+}
+
+/* 6-Digit OTP Box Grid */
+.otp-grid {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.otp-box {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: monospace;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  outline: none;
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.otp-box:focus {
+  border-color: var(--primary);
+  background: var(--card-bg);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+  .otp-box {
+    width: 40px;
+    height: 50px;
+    font-size: 1.3rem;
+    gap: 0.35rem;
+  }
+}
+
+/* Password Field with Eye Toggle */
+.password-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field-wrapper .form-input {
+  padding-right: 2.75rem;
+  width: 100%;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+}
+
+.password-toggle-btn:hover {
+  color: var(--primary);
+  transform: scale(1.1);
+}
+
+/* Password Strength Indicator */
+.password-strength-container {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.password-strength-track {
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.password-strength-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 4px;
+  transition: all var(--transition-normal);
+}
+
+.password-strength-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Resend Timer & Links */
+.resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 1rem;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color var(--transition-fast);
+}
+
+.btn-link:hover {
+  color: var(--primary-hover);
+}
+
+.btn-link:disabled {
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+  text-decoration: none;
+}

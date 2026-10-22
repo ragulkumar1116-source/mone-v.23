@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
       updateActivitiesUI();
     });
 
-    // 4. System Settings
+    // 4. System Settings & Brevo Configuration
     MMP_Firebase.listenToSystemSettings((settings) => {
       const ann = document.getElementById("setting-announcement");
       const stat = document.getElementById("setting-default-status");
@@ -67,6 +67,16 @@ document.addEventListener("DOMContentLoaded", () => {
       if (ann && settings.announcement !== undefined) ann.value = settings.announcement;
       if (stat && settings.defaultUserStatus !== undefined) stat.value = settings.defaultUserStatus;
       if (reg && settings.allowRegistration !== undefined) reg.checked = settings.allowRegistration;
+
+      // Populate Brevo Email settings
+      const brevoKey = document.getElementById("setting-brevo-key");
+      const brevoSenderEmail = document.getElementById("setting-brevo-sender-email");
+      const brevoSenderName = document.getElementById("setting-brevo-sender-name");
+      const brevoCfg = (settings && settings.brevo) || (MMP_Firebase.getBrevoConfig && MMP_Firebase.getBrevoConfig()) || {};
+
+      if (brevoKey && brevoCfg.apiKey !== undefined) brevoKey.value = brevoCfg.apiKey;
+      if (brevoSenderEmail && brevoCfg.senderEmail !== undefined) brevoSenderEmail.value = brevoCfg.senderEmail;
+      if (brevoSenderName && brevoCfg.senderName !== undefined) brevoSenderName.value = brevoCfg.senderName;
     });
   }
 
@@ -697,6 +707,90 @@ document.addEventListener("DOMContentLoaded", () => {
         showToast("System settings saved successfully!", "success");
       } catch (err) {
         showToast("Failed to save settings.", "error");
+      }
+    });
+  }
+
+  // Brevo Settings Form Save & Test
+  const brevoForm = document.getElementById("admin-brevo-form");
+  const saveBrevoBtn = document.getElementById("save-brevo-btn");
+  const testBrevoBtn = document.getElementById("test-brevo-btn");
+
+  if (brevoForm) {
+    brevoForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const apiKey = (document.getElementById("setting-brevo-key").value || "").trim();
+      const senderEmail = (document.getElementById("setting-brevo-sender-email").value || "").trim();
+      const senderName = (document.getElementById("setting-brevo-sender-name").value || "").trim();
+
+      if (!senderEmail) {
+        showToast("Please enter a verified sender email.", "error");
+        return;
+      }
+
+      const origHTML = saveBrevoBtn.innerHTML;
+      saveBrevoBtn.disabled = true;
+      saveBrevoBtn.innerHTML = `<span class="spinner"></span> <span>Saving...</span>`;
+
+      try {
+        await MMP_Firebase.saveBrevoConfig({
+          apiKey: apiKey,
+          senderEmail: senderEmail,
+          senderName: senderName || "KRISHTECH Security"
+        });
+        showToast("Brevo email configuration saved successfully!", "success");
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || "Failed to save Brevo settings.", "error");
+      } finally {
+        saveBrevoBtn.disabled = false;
+        saveBrevoBtn.innerHTML = origHTML;
+        lucide.createIcons();
+      }
+    });
+  }
+
+  // Test Brevo Email
+  if (testBrevoBtn) {
+    testBrevoBtn.addEventListener("click", async () => {
+      const apiKey = (document.getElementById("setting-brevo-key").value || "").trim();
+      const senderEmail = (document.getElementById("setting-brevo-sender-email").value || "").trim();
+      const senderName = (document.getElementById("setting-brevo-sender-name").value || "").trim();
+
+      if (!apiKey) {
+        showToast("Please enter your Brevo API key before testing.", "error");
+        document.getElementById("setting-brevo-key").focus();
+        return;
+      }
+
+      if (!senderEmail) {
+        showToast("Please enter a sender email address.", "error");
+        return;
+      }
+
+      // Save to memory first
+      if (window.MMP_Brevo) {
+        window.MMP_Brevo.setConfig({ apiKey, senderEmail, senderName });
+      }
+
+      const targetTestEmail = prompt("Enter the email address to receive the test verification email:", senderEmail);
+      if (!targetTestEmail) return;
+
+      const origHTML = testBrevoBtn.innerHTML;
+      testBrevoBtn.disabled = true;
+      testBrevoBtn.innerHTML = `<span class="spinner"></span> <span>Sending Test Email...</span>`;
+
+      try {
+        await MMP_Firebase.testBrevoConnection(targetTestEmail.trim());
+        showToast(`Test email sent successfully to ${targetTestEmail}!`, "success");
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || "Failed to send test email. Check API key and sender.", "error");
+      } finally {
+        testBrevoBtn.disabled = false;
+        testBrevoBtn.innerHTML = origHTML;
+        lucide.createIcons();
       }
     });
   }

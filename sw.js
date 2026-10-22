@@ -1,5 +1,5 @@
 // KRISHTECH Service Worker
-const CACHE_NAME = "krishtech-cache-v2";
+const CACHE_NAME = "krishtech-cache-v5";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -9,7 +9,10 @@ const ASSETS_TO_CACHE = [
   "./admin-login.html",
   "./newuser.html",
   "./forgot.html",
+  "./reset-password.html",
+  "./reset-password.js",
   "./style.css",
+  "./email-service.js",
   "./firebase.js",
   "./index.js",
   "./dashboard.js",

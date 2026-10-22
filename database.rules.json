@@ -12,6 +12,9 @@
     },
     "activity_logs": {
       ".indexOn": ["timestamp", "uid"]
+    },
+    "otp_verifications": {
+      ".indexOn": ["expiresAt", "email", "purpose"]
     }
   }
 }

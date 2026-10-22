@@ -256,6 +256,11 @@ if (isFirebaseConfigured()) {
     }
     db = firebase.database();
 
+    // Attach Brevo dynamic settings listener to Firebase RTDB
+    if (typeof window !== "undefined" && window.MMP_Brevo) {
+      window.MMP_Brevo.initRTDBListener(db);
+    }
+
     // Direct Realtime Database Auth engine guarantees 100% credential synchronization
     // with the Admin Panel across both file:// and http:// protocols. Admin password resets,
     // email changes, and account deactivations take effect immediately with zero delay.
@@ -783,6 +788,250 @@ const logoutUser = async () => {
 const resetPassword = (email) => {
   recordActivity("Password Reset Requested", `For: ${email}`);
   return auth.sendPasswordResetEmail(email);
+};
+
+// ==========================================
+// BREVO & FIREBASE REALTIME DATABASE OTP AUTH
+// ==========================================
+
+// Lookup user by email in RTDB (users + admins) or mock fallback
+const findUserByEmail = async (email) => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  if (!cleanEmail) return null;
+
+  // 1. Check RTDB money_manager_users
+  if (db) {
+    try {
+      const snap = await db.ref("money_manager_users").once("value");
+      const allUsers = snap.val() || {};
+      for (const uid in allUsers) {
+        const prof = allUsers[uid]?.profile || {};
+        const uEmail = (prof.email || prof[' email'] || allUsers[uid]?.email || "").trim().toLowerCase();
+        if (uEmail === cleanEmail) {
+          return {
+            uid: uid,
+            name: prof.name || cleanEmail.split("@")[0],
+            email: uEmail,
+            role: prof.role || "user",
+            status: prof.status || "active",
+            isAdmin: prof.role === "admin"
+          };
+        }
+      }
+    } catch (e) {
+      console.warn("RTDB user lookup error:", e);
+    }
+
+    // 2. Check RTDB app_admins
+    try {
+      const adminSnap = await db.ref("app_admins").once("value");
+      const admins = adminSnap.val() || {};
+      for (const aid in admins) {
+        const a = admins[aid] || {};
+        if ((a.email || "").trim().toLowerCase() === cleanEmail) {
+          return {
+            uid: a.uid || aid,
+            name: a.name || "Administrator",
+            email: (a.email || "").trim().toLowerCase(),
+            role: "admin",
+            status: "active",
+            isAdmin: true
+          };
+        }
+      }
+    } catch (e) {
+      console.warn("RTDB admin lookup error:", e);
+    }
+  }
+
+  // 3. Check localStorage mock
+  try {
+    const localUsers = JSON.parse(localStorage.getItem("mmp_users") || "{}");
+    for (const uid in localUsers) {
+      const prof = localUsers[uid]?.profile || {};
+      if ((prof.email || "").trim().toLowerCase() === cleanEmail) {
+        return {
+          uid: uid,
+          name: prof.name || cleanEmail.split("@")[0],
+          email: cleanEmail,
+          role: prof.role || "user",
+          status: prof.status || "active",
+          isAdmin: prof.role === "admin"
+        };
+      }
+    }
+  } catch (e) {}
+
+  return null;
+};
+
+// Request Password Reset OTP via Brevo
+const requestPasswordResetOTP = async (email) => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  if (!cleanEmail) throw new Error("Please enter your email address.");
+
+  // Verify that account exists in database
+  const existingUser = await findUserByEmail(cleanEmail);
+  if (!existingUser) {
+    throw new Error("No account found with this email address. Please verify your email or register.");
+  }
+
+  if (existingUser.status === "deactivated") {
+    throw new Error("Account Deactivated: This account has been suspended by an administrator.");
+  }
+
+  if (window.MMP_Brevo) {
+    recordActivity("Reset OTP Requested", `OTP requested for: ${cleanEmail}`);
+    return await window.MMP_Brevo.sendPasswordResetOTP(db, cleanEmail, existingUser.name);
+  } else {
+    throw new Error("Brevo Email Service is not available.");
+  }
+};
+
+// Verify Password Reset OTP
+const verifyPasswordResetOTP = async (email, otp) => {
+  if (window.MMP_Brevo) {
+    return await window.MMP_Brevo.verifyOTP(db, email, otp, "password_reset");
+  }
+  throw new Error("Brevo Email Service is not available.");
+};
+
+// Complete Password Reset with Verified OTP
+const resetPasswordWithOTP = async (email, otp, newPassword) => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const cleanPass = (newPassword || "").trim();
+
+  if (!cleanPass || cleanPass.length < 6) {
+    throw new Error("Password must be at least 6 characters long.");
+  }
+
+  // Verify OTP
+  if (window.MMP_Brevo) {
+    await window.MMP_Brevo.verifyOTP(db, cleanEmail, otp, "password_reset");
+  }
+
+  const user = await findUserByEmail(cleanEmail);
+  if (!user) {
+    throw new Error("Account could not be identified for password update.");
+  }
+
+  // Update password in RTDB
+  if (db) {
+    try {
+      await db.ref(`money_manager_users/${user.uid}/profile/password`).set(cleanPass);
+      await db.ref(`money_manager_users/${user.uid}/password`).set(cleanPass);
+
+      const adminSnap = await db.ref(`app_admins/${user.uid}`).once("value");
+      if (adminSnap.val()) {
+        await db.ref(`app_admins/${user.uid}/password`).set(cleanPass);
+      }
+    } catch (e) {
+      console.warn("RTDB password reset error:", e);
+    }
+  }
+
+  // Update localStorage mock
+  try {
+    const localUsers = JSON.parse(localStorage.getItem("mmp_users") || "{}");
+    if (localUsers[user.uid]) {
+      if (!localUsers[user.uid].profile) localUsers[user.uid].profile = {};
+      localUsers[user.uid].profile.password = cleanPass;
+      localStorage.setItem("mmp_users", JSON.stringify(localUsers));
+    }
+  } catch (e) {}
+
+  // Invalidate OTP and send confirmation
+  if (window.MMP_Brevo) {
+    await window.MMP_Brevo.clearOTP(db, cleanEmail);
+    window.MMP_Brevo.sendPasswordChangedNotification(cleanEmail, user.name);
+  }
+
+  recordActivity("Password Reset Succeeded", `User ${cleanEmail} successfully reset password`);
+  return { success: true, message: "Password updated successfully." };
+};
+
+// Request Registration OTP
+const requestRegistrationOTP = async (email, name) => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  if (!cleanEmail) throw new Error("Please enter your email address.");
+
+  // Check if account already exists
+  const existingUser = await findUserByEmail(cleanEmail);
+  if (existingUser) {
+    throw new Error("An account with this email address already exists. Please login instead.");
+  }
+
+  if (window.MMP_Brevo) {
+    recordActivity("Registration OTP Requested", `OTP sent to: ${cleanEmail}`);
+    return await window.MMP_Brevo.sendRegistrationOTP(db, cleanEmail, name);
+  }
+  throw new Error("Brevo Email Service is not available.");
+};
+
+// Verify Registration OTP
+const verifyRegistrationOTP = async (email, otp) => {
+  if (window.MMP_Brevo) {
+    return await window.MMP_Brevo.verifyOTP(db, email, otp, "registration");
+  }
+  throw new Error("Brevo Email Service is not available.");
+};
+
+// Complete Registration with Verified OTP
+const completeRegistrationWithOTP = async (name, phone, email, password, otp) => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+
+  // Verify OTP first
+  if (window.MMP_Brevo) {
+    await window.MMP_Brevo.verifyOTP(db, cleanEmail, otp, "registration");
+  }
+
+  // Create User
+  const user = await registerUser(name, phone, cleanEmail, password);
+
+  // Mark email as verified
+  if (db && user && user.uid) {
+    try {
+      await db.ref(`money_manager_users/${user.uid}/profile/emailVerified`).set(true);
+    } catch (e) {}
+  }
+
+  // Clear OTP
+  if (window.MMP_Brevo) {
+    await window.MMP_Brevo.clearOTP(db, cleanEmail);
+  }
+
+  return user;
+};
+
+// Brevo Configuration Management
+const isBrevoConfigured = () => {
+  if (typeof window !== "undefined" && window.MMP_Brevo && window.MMP_Brevo.isConfigured) {
+    return window.MMP_Brevo.isConfigured();
+  }
+  return false;
+};
+
+const getBrevoConfig = () => {
+  if (window.MMP_Brevo) return window.MMP_Brevo.getConfig();
+  return null;
+};
+
+const saveBrevoConfig = async (config) => {
+  if (window.MMP_Brevo) {
+    window.MMP_Brevo.setConfig(config);
+  }
+  if (db) {
+    await db.ref("system_settings/brevo").set(config);
+  }
+  recordActivity("Brevo Config Updated", "Administrator modified email & OTP settings");
+  return config;
+};
+
+const testBrevoConnection = async (targetEmail) => {
+  if (window.MMP_Brevo) {
+    return await window.MMP_Brevo.testConnection(targetEmail);
+  }
+  throw new Error("Brevo service not available.");
 };
 
 const onAuthChanged = (callback) => {
@@ -1418,5 +1667,17 @@ window.MMP_Firebase = {
   listenToSystemSettings,
   adminUpdateSystemSettings,
   checkAdminExists,
-  registerAdmin
+  registerAdmin,
+  // Brevo & OTP Email Verification & Reset Password
+  findUserByEmail,
+  requestPasswordResetOTP,
+  verifyPasswordResetOTP,
+  resetPasswordWithOTP,
+  requestRegistrationOTP,
+  verifyRegistrationOTP,
+  completeRegistrationWithOTP,
+  isBrevoConfigured,
+  getBrevoConfig,
+  saveBrevoConfig,
+  testBrevoConnection
 };
