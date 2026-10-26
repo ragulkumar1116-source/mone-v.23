@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRISHTECH - Admin Authentication</title>
+  <meta name="description" content="KRISHTECH dedicated administration login portal. Authorized personnel only.">
+  <meta name="robots" content="noindex, nofollow">
+  
+  <link rel="icon" type="image/svg+xml" href="krish-icon.svg">
+  <link rel="apple-touch-icon" href="krish-icon.svg">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase Compat Library CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body data-theme="dark" style="margin: 0; background: #0f172a;">
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <div class="admin-auth-wrapper">
+    <div class="admin-auth-container">
+      
+      <!-- Branding & Portal Emblem -->
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <img src="krish-logo.svg" alt="KRISHTECH" style="max-height: 52px; margin: 0 auto 1.25rem; display: block; filter: drop-shadow(0 4px 14px rgba(79, 70, 229, 0.45));">
+        <div class="admin-badge-pill">
+          <i data-lucide="shield-alert" style="width: 15px; height: 15px; color: #818cf8;"></i>
+          <span>Administrator Access Portal</span>
+        </div>
+      </div>
+
+      <!-- Main Login Card -->
+      <div class="admin-auth-card">
+        <h2 class="admin-auth-title">Admin Sign In</h2>
+        <p class="admin-auth-subtitle">Authorized credentials required for system access</p>
+
+        <form id="admin-login-form" novalidate>
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label for="admin-email" class="admin-form-label">Admin Email Address</label>
+            <input type="email" id="admin-email" class="admin-form-input" placeholder="admin@krishtech.com" required autocomplete="email">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label for="admin-password" class="admin-form-label">Secure Password</label>
+            <input type="password" id="admin-password" class="admin-form-input" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+
+          <button type="submit" id="admin-submit-btn" class="btn-admin-submit">
+            <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
+            <span>Authenticate &amp; Access</span>
+          </button>
+        </form>
+
+        <!-- First time admin setup link -->
+        <div style="margin-top: 1.25rem; text-align: center;">
+          <a href="admin-register.html" id="admin-reg-link" style="font-size: 0.82rem; color: #818cf8; text-decoration: none; font-weight: 600;">
+            First Time Setup? Register Master Admin
+          </a>
+        </div>
+
+        <!-- Compliance & Security Notice -->
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.76rem; color: #64748b; line-height: 1.5; text-align: center;">
+          <i data-lucide="shield-check" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle; margin-right: 4px; color: #6366f1;"></i>
+          Secure end-to-end admin session with activity audit tracking.
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 1.75rem; font-size: 0.8rem; color: #64748b;">
+        &copy; 2026 KRISHTECH Financial Systems
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Shared Services and Logic Scripts -->
+  <script src="email-service.js"></script>
+  <script src="firebase.js"></script>
+  <script src="admin-login.js"></script>
+</body>
+</html>
