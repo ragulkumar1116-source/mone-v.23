@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - KRISHTECH</title>
+  <meta name="description" content="Configure profile settings, theme choices, and security updates for KRISHTECH.">
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="krish-icon.svg">
+  <link rel="apple-touch-icon" href="krish-icon.svg">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KRISHTECH">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase Compat Library Core CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body data-theme="light">
+
+  <!-- Toast Notifications Area -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Main App Settings Layout -->
+  <div class="app-layout">
+    
+    <!-- Sidebar navigation (desktop) -->
+    <aside class="sidebar">
+      <div class="sidebar-logo brand-logo-wrap">
+        <img src="krish-logo.svg" alt="KRISHTECH" class="brand-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="brand-logo-text-fallback" style="display: none;">
+          <i data-lucide="wallet"></i>
+          <span>KRISH<span style="color: var(--primary);">TECH</span></span>
+        </div>
+      </div>
+
+      <!-- Compact User Details Card -->
+      <div class="user-card-compact">
+        <div class="user-name-compact" id="sb-user-name">Loading...</div>
+        <div class="user-phone-compact" id="sb-user-phone">...</div>
+        <div class="user-email-compact" id="sb-user-email">...</div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="nav-menu">
+        <a href="dashboard.html" class="nav-link">
+          <i data-lucide="arrow-left"></i> Back to Dashboard
+        </a>
+      </nav>
+
+      <div class="nav-footer">
+        <button id="logout-btn" class="nav-link" style="border: none; background: transparent; width: 100%; text-align: left; cursor: pointer; color: var(--expense);">
+          <i data-lucide="log-out"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+      <a href="dashboard.html" class="mobile-nav-link">
+        <i data-lucide="arrow-left"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="mobile-nav-link active">
+        <i data-lucide="settings"></i>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+    <!-- Settings Workspace Frame -->
+    <main class="main-content">
+      <header class="main-header">
+        <h2 class="page-title">Settings</h2>
+      </header>
+
+      <div class="content-body">
+        <div class="settings-grid">
+          
+          <!-- Column 1: Profile and Theme Settings -->
+          <div class="dashboard-column">
+            
+            <!-- Profile Settings Form Card -->
+            <div class="card section-card">
+              <div class="section-header">
+                <h3 class="section-title"><i data-lucide="user"></i> Profile Settings</h3>
+              </div>
+              
+              <form id="profile-settings-form">
+                <div class="form-group">
+                  <label for="profile-name" class="form-label">Full Name</label>
+                  <input type="text" id="profile-name" class="form-input" placeholder="Enter full name" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="profile-phone" class="form-label">Mobile Number</label>
+                  <input type="tel" id="profile-phone" class="form-input" placeholder="e.g. +91 XXXXX XXXXX" required>
+                </div>
+
+                <button type="submit" id="profile-save-btn" class="btn btn-primary" style="margin-top: 0.5rem; width: 100%;">
+                  <span>Save Profile Changes</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Theme Settings Options Card -->
+            <div class="card section-card">
+              <div class="section-header">
+                <h3 class="section-title"><i data-lucide="palette"></i> Theme Customization</h3>
+              </div>
+              
+              <div class="theme-options">
+                <div class="theme-card" id="theme-light" data-val="light">
+                  <div class="theme-icon"><i data-lucide="sun"></i></div>
+                  <span>Light Mode</span>
+                </div>
+
+                <div class="theme-card" id="theme-dark" data-val="dark">
+                  <div class="theme-icon"><i data-lucide="moon"></i></div>
+                  <span>Dark Mode</span>
+                </div>
+
+                <div class="theme-card" id="theme-auto" data-val="auto">
+                  <div class="theme-icon"><i data-lucide="monitor"></i></div>
+                  <span>Auto Mode</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Column 2: Account Security Credentials Settings -->
+          <div class="dashboard-column">
+            
+            <!-- Password Updates Security Settings Card -->
+            <div class="card section-card">
+              <div class="section-header">
+                <h3 class="section-title"><i data-lucide="shield-check"></i> Security Settings</h3>
+              </div>
+              
+              <form id="security-settings-form">
+                <div class="form-group">
+                  <label for="security-password" class="form-label">New Password</label>
+                  <input type="password" id="security-password" class="form-input" placeholder="Min. 6 characters" required autocomplete="new-password">
+                </div>
+
+                <div class="form-group">
+                  <label for="security-confirm" class="form-label">Confirm New Password</label>
+                  <input type="password" id="security-confirm" class="form-input" placeholder="Re-enter password" required autocomplete="new-password">
+                </div>
+
+                <button type="submit" id="security-save-btn" class="btn btn-primary" style="margin-top: 0.5rem; width: 100%;">
+                  <span>Update Password</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Details metadata card -->
+            <div class="card section-card" style="opacity: 0.85;">
+              <div class="section-header">
+                <h3 class="section-title"><i data-lucide="info"></i> Account Metadata</h3>
+              </div>
+              <div style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-tertiary);">Authentication ID</span>
+                  <span style="font-family: monospace; font-weight: bold;" id="meta-uid">loading...</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-tertiary);">Authentication Email</span>
+                  <span id="meta-email" style="font-weight: bold;">loading...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- PWA App Installation Card -->
+            <div class="card section-card" id="pwa-settings-install-card" style="border-left: 4px solid var(--primary); display: none;">
+              <div class="section-header">
+                <h3 class="section-title"><i data-lucide="smartphone" style="color: var(--primary);"></i> Install KrishTech App</h3>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Install KRISHTECH on your mobile device or desktop for instant access, fullscreen experience, and offline capability.
+              </p>
+              <button type="button" class="btn btn-primary pwa-install-trigger" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%;">
+                <i data-lucide="download"></i> Install App
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Real-time Account Deactivation Lockout Overlay -->
+  <div class="modal-backdrop deactivated-backdrop" id="deactivated-lockout-modal" style="display: none;">
+    <div class="modal deactivated-modal-card">
+      <div class="deactivated-icon-wrapper">
+        <i data-lucide="shield-alert"></i>
+      </div>
+      <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.65rem;">Account Deactivated</h2>
+      <p style="color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55; margin-bottom: 1.25rem;">
+        Your user account has been deactivated by the system administrator. While deactivated, access to settings, profile edits, and financial records is suspended.
+      </p>
+      <div style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid #ef4444; border-radius: 8px; padding: 0.85rem 1rem; text-align: left; margin-bottom: 1.5rem;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #dc2626; display: flex; align-items: center; gap: 0.4rem;">
+          <i data-lucide="lock" style="width: 15px; height: 15px;"></i> All Settings Locked
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+          Please contact the administrator if you need your account reactivated.
+        </div>
+      </div>
+      <button type="button" class="btn btn-danger" id="deactivated-logout-btn" style="width: 100%; padding: 0.85rem 1.25rem; font-size: 0.95rem; font-weight: 700; justify-content: center;">
+        <i data-lucide="log-out"></i> Sign Out
+      </button>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Shared Services and Logic Scripts -->
+  <script src="firebase.js"></script>
+  <script src="settings.js"></script>
+  <script src="pwa-install.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW:', err));
+      });
+    }
+  </script>
+</body>
+</html>
